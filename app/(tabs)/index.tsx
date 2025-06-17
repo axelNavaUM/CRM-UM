@@ -1,75 +1,54 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { HomeViewController } from '../../controller/homeViewController';
+import { HomeViewData } from '../../models/homeViewModel';
+// Navbar is now in _layout.tsx
 
 export default function HomeScreen() {
+  const [data, setData] = useState<HomeViewData>({});
+
+  useEffect(() => {
+    const controller = new HomeViewController();
+    controller.getScreenData().then(screenData => {
+      setData(screenData);
+    }).catch(error => {
+      console.error("Failed to load screen data:", error);
+      // Set some default error message or handle error state
+      setData({ welcomeMessage: "Error loading data" });
+    });
+  }, []);
+
+  // Navbar is now rendered by the layout, so no need for screenContainer View here if not otherwise needed
+  // The ScrollView will be the main container for this screen's content
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ScrollView contentContainerStyle={styles.contentContainer}>
+      <Text style={styles.title}>{data.welcomeMessage || 'Loading...'}</Text>
+      <Text style={styles.subtitle}>School CRM Dashboard Content Area</Text>
+      {/* Example of a button or action that could use the controller */}
+      {/* <Button title="Perform Action" onPress={() => new HomeViewController().handleUserAction()} /> */}
+      {/* Add more content here to test scrolling with Navbar */}
+      <Text style={{ marginVertical: 200 }}>More content...</Text>
+      <Text style={{ marginVertical: 200 }}>Even more content...</Text>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  // screenContainer might not be needed if Navbar is in layout and this screen is just ScrollView
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    padding: 20,
+    backgroundColor: '#f0f0f0', // Moved background color here
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  subtitle: {
+    fontSize: 18,
+    color: '#666',
   },
 });

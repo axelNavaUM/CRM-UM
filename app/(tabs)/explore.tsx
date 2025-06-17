@@ -1,29 +1,24 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View, ScrollView } from 'react-native';
 
 import { Collapsible } from '@/components/Collapsible';
 import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+// import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+// Navbar is now in _layout.tsx
 
 export default function TabTwoScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
+    // <View style={styles.screenContainer}> // This View might not be needed anymore
+      // <Navbar title="Explore" /> // Removed
+    <ScrollView contentContainerStyle={styles.contentContainer}>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
+        <ThemedText type="title">Explore Content</ThemedText>
       </ThemedView>
       <ThemedText>This app includes example code to help you get started.</ThemedText>
+      {/* Re-adding Collapsible sections that were inside ParallaxScrollView */}
       <Collapsible title="File-based routing">
         <ThemedText>
           This app has two screens:{' '}
@@ -87,17 +82,26 @@ export default function TabTwoScreen() {
           ios: (
             <ThemedText>
               The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
+              component was previously used here to provide a parallax effect for the header image.
             </ThemedText>
           ),
         })}
       </Collapsible>
-    </ParallaxScrollView>
+    </ScrollView>
+    // </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
+  // screenContainer: {
+  //   flex: 1,
+  //   backgroundColor: '#f0f0f0',
+  // },
+  contentContainer: {
+    padding: 20,
+    backgroundColor: '#f0f0f0', // Added background here if screenContainer is removed
+  },
+  headerImage: { // This style might be unused now or needs adjustment
     color: '#808080',
     bottom: -90,
     left: -35,
@@ -106,5 +110,6 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 16, // Added margin for spacing
   },
 });

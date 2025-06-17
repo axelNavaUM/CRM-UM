@@ -26,11 +26,15 @@ export function useGoogleLoginHandler() {
 
         const userInfo = await res.json();
 
-        if (!userInfo.email.endsWith('@univermilenium.edu.com')) {
-          alert('Solo se permiten correos @univermilenium.edu.com');
+        console.log('Email received:', userInfo.email); // Temporary log for testing
+
+        if (!userInfo.email.endsWith('@univermilenium.edu.mx')) {
+          console.log('Domain validation failed for:', userInfo.email); // Temporary log for testing
+          alert('Solo se permiten correos @univermilenium.edu.mx');
           return;
         }
 
+        console.log('Domain validation passed for:', userInfo.email); // Temporary log for testing
         const savedUser = await userModel.upsert({
           email: userInfo.email,
           name: userInfo.name,
