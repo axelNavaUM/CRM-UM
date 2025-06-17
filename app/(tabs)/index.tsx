@@ -6,13 +6,16 @@ import { HomeViewData } from '../../models/homeViewModel';
 
 export default function HomeScreen() {
   const [data, setData] = useState<HomeViewData>({});
+  console.log('[HomeScreen] Component rendering or re-rendering');
 
   useEffect(() => {
+    console.log('[HomeScreen] useEffect triggered - fetching data');
     const controller = new HomeViewController();
     controller.getScreenData().then(screenData => {
+      console.log('[HomeScreen] Data fetched:', screenData);
       setData(screenData);
     }).catch(error => {
-      console.error("Failed to load screen data:", error);
+      console.error("[HomeScreen] Failed to load screen data:", error);
       // Set some default error message or handle error state
       setData({ welcomeMessage: "Error loading data" });
     });

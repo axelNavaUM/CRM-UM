@@ -11,16 +11,20 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 // Function to get a dynamic title based on the current route
 function getNavbarTitle(pathname: string): string {
+  console.log('[TabLayout] getNavbarTitle - pathname:', pathname);
   if (pathname === '/index' || pathname === '/') return 'Home Dashboard';
   if (pathname === '/newCourse') return 'Create New Course';
   if (pathname === '/explore') return 'Explore';
-  return 'School CRM'; // Default title
+  const defaultTitle = 'School CRM';
+  console.log('[TabLayout] getNavbarTitle - returning default:', defaultTitle);
+  return defaultTitle;
 }
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const pathname = usePathname(); // Get current path
+  const pathname = usePathname();
   const title = getNavbarTitle(pathname);
+  console.log(`[TabLayout] Rendering layout for pathname: ${pathname}, title: ${title}`);
 
   // Do not show Navbar on the loginScreen if it were part of this layout
   // However, loginScreen is typically outside or presented modally
@@ -48,11 +52,16 @@ export default function TabLayout() {
             The check `if (pathname === '/loginScreen')` above is mostly illustrative,
             as the Navbar is rendered outside the Tabs for other screens.
          */}
-        <Tabs.Screen name="loginScreen" options={{ tabBarVisible: false, title: 'Login' }} />
+        {/* The loginScreen should ideally not be a Tab here if it's handled by the if condition.
+            If loginScreen is truly standalone, it shouldn't be a Tabs.Screen at all in this authenticated layout.
+            Assuming loginScreen is handled correctly by being outside this main Tabs rendering if path is /loginScreen.
+         */}
+        {/* <Tabs.Screen name="loginScreen" options={{ tabBarVisible: false, title: 'Login' }} /> */}
       </Tabs>
     );
   }
 
+  console.log('[TabLayout] Rendering main Navbar and Tabs container');
   return (
     <View style={{ flex: 1 }}>
       <Navbar title={title} />
@@ -62,14 +71,14 @@ export default function TabLayout() {
           headerShown: false, // Crucial: Tabs screens should not show their own headers
           tabBarButton: HapticTab,
           tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+          tabBarStyle: Platform.select({ // MOVED tabBarStyle inside screenOptions
+            ios: {
+              // Use a transparent background on iOS to show the blur effect
+              position: 'absolute',
+            },
+            default: {},
+          }),
+        }}>
       <Tabs.Screen
         name="index"
         options={{
