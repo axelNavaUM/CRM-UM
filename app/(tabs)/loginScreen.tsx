@@ -86,10 +86,17 @@ export default function LoginScreen() {
 
       const user = users[0];
 
-      // IMPORTANT: Direct password comparison (temporary for this step)
-      // In a real app, passwords MUST be hashed and compared using a secure method.
+      // =====================================================================================
+      // !!! SECURITY WARNING !!!
+      // The following is a DIRECT PASSWORD COMPARISON. This is EXTREMELY INSECURE
+      // and is only used as a temporary placeholder for this specific development phase.
+      // In a production environment, passwords MUST be securely hashed (e.g., with bcrypt)
+      // before being stored, and comparison MUST be done using a secure hashing library
+      // or a built-in secure authentication method from your backend provider (e.g., Supabase Auth).
+      // DO NOT USE THIS IN PRODUCTION.
+      // =====================================================================================
       if (user.password !== password) {
-        console.log('Login failed: Incorrect password for email', email); // Test log
+        console.log('Login failed: Incorrect password for email (SECURITY RISK - PLAIN TEXT PW)', email); // Test log
         Alert.alert('Error', 'Correo o contraseña incorrectos.');
         return;
       }
@@ -103,7 +110,16 @@ export default function LoginScreen() {
       });
 
       // TODO: Navigate to the main app screen
-      Alert.alert('Éxito', 'Inicio de sesión exitoso!'); // Placeholder for navigation
+      // Alert.alert('Éxito', 'Inicio de sesión exitoso!'); // Placeholder for navigation
+      // Replace with actual navigation. Assuming expo-router is used:
+      try {
+        const { router } = require('expo-router'); // Dynamically require to avoid issues if not fully set up for testing env
+        router.replace('/'); // Navigate to the root of the (tabs) group, which is index.tsx
+        console.log('Navigation attempt to home screen after login.');
+      } catch (e) {
+        console.error("Navigation failed after login:", e);
+        Alert.alert('Éxito', 'Inicio de sesión exitoso! (Navigation failed, see console)');
+      }
 
     } catch (err: any) {
       console.error('Login exception:', err.message);
