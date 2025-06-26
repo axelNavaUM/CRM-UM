@@ -6,14 +6,19 @@ type User = {
   avatarUrl?: string;
 };
 
+type Session = {
+  user: User;
+  token?: string; 
+};
+
 type SessionState = {
-  user: User | null;
-  setSession: (user: User) => void;
+  session: Session | null;
+  setSession: (session: Session) => void;
   logout: () => void;
 };
 
 export const useSessionStore = create<SessionState>((set) => ({
-  user: null,
-  setSession: (user) => set({ user }),
-  logout: () => set({ user: null }),
+  session: null,
+  setSession: (session) => set({ session }),
+  logout: () => set({ session: null }),
 }));

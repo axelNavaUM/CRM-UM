@@ -1,20 +1,13 @@
-import { userModel } from '@/models/userModel';
-import { googleAuthService } from '@/services/auth/authGoogle';
+// src/controllers/loginController.ts
+import { authModel } from '@/models/authModel';
 
-export const authController = {
-  loginWithGoogle: async () => {
-    const userInfo = await googleAuthService.signIn();
+export async function loginController(username: string, password: string) {
 
-    if (!userInfo.email.endsWith('@univermilenium.edu.com')) {
-      throw new Error('Correo no permitido');
-    }
+  const response = await authModel.login(username, password);
+  
+  if (!response.session) {
+    throw new Error('Credenciales inválidas');
+  }
 
-    const user = await userModel.upsert({
-      email: userInfo.email,
-      name: userInfo.name,
-      avatarUrl: userInfo.picture,
-    });
-
-    return user;
-  },
-};
+  return response.session;
+}

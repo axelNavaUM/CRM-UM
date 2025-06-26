@@ -9,7 +9,7 @@ WebBrowser.maybeCompleteAuthSession(); // <- ¡NECESARIO!
 export function useGoogleLoginHandler() {
   const [request, response, promptAsync] = Google.useAuthRequest({
     expoClientId: '1076932641700-ut46bi6r6g5upunvg6in7j4cmp0tlhvl.apps.googleusercontent.com',
-    androidClientId: '1076932641700-47n33sspij180ii29lmfqupc7bap32sh.apps.googleusercontent.com',
+    androidClientId: '  .apps.googleusercontent.com',
     webClientId: '1076932641700-ut46bi6r6g5upunvg6in7j4cmp0tlhvl.apps.googleusercontent.com',
   });
 
