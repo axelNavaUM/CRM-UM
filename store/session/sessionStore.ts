@@ -1,24 +1,12 @@
 import { create } from 'zustand';
 
-type User = {
-  email: string;
-  name?: string;
-  avatarUrl?: string;
-};
-
-type Session = {
-  user: User;
-  token?: string; 
-};
-
 type SessionState = {
-  session: Session | null;
-  setSession: (session: Session) => void;
-  logout: () => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+  // Agrega aquí otros flags o datos temporales de UI/sesión si los necesitas
 };
 
 export const useSessionStore = create<SessionState>((set) => ({
-  session: null,
-  setSession: (session) => set({ session }),
-  logout: () => set({ session: null }),
+  sidebarOpen: false,
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
 }));

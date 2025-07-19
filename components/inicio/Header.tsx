@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Image,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -23,7 +24,7 @@ const Header = ({ darkMode, notificationCount }) => {
   const isMobile = width < 600;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isMobile && styles.containerMobile]}>
       {/* NAVIGATION TABS O MENÚ */}
       {isMobile ? (
         <>
@@ -127,6 +128,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  containerMobile: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 30, // Espacio para la barra de notificaciones
+    paddingBottom: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e7edf3',
   },
   tabsContainer: {
     flexDirection: 'row',

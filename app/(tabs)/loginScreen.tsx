@@ -1,23 +1,27 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-
 import GoogleButton from '@/components/ui/GoogleButton';
 import { Input } from '@/components/ui/Input';
 import Logo from '@/components/ui/Logo';
 import PrimaryButton from '@/components/ui/PrimaryButton';
-
-import { useAuthLogin } from '@/hooks/auth/authLogin';
-import { useGoogleLoginHandler } from '@/hooks/auth/useGoogleLogin';
-
+import { useAuth } from '@/context/AuthContext';
+import React, { useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { styles } from '../../style/loginScreen';
 
 export default function LoginScreen() {
-  const [username, setUsername] = useState('');
+  const { login, isLoading } = useAuth();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  // Hook que maneja toda la lógica de React (estado, navegación, etc.)
-  const { handleLogin, isLoading } = useAuthLogin();
-  const { promptAsync } = useGoogleLoginHandler();
+  const handleLogin = async () => {
+    setError(null);
+    try {
+      await login(email, password);
+      // Redirección automática la maneja el layout si la sesión está activa
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión');
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -25,40 +29,31 @@ export default function LoginScreen() {
         <Logo />
         <Text style={styles.brand}>UniverMilenium</Text>
       </View>
-
       <Text style={styles.title}>Inicio de Sesión</Text>
-
-      <Input 
-        placeholder="Usuario" 
-        value={username} 
-        onChangeText={setUsername}
+      <Input
+        placeholder="Usuario"
+        value={email}
+        onChangeText={setEmail}
         editable={!isLoading}
       />
-      <Input 
-        placeholder="Contraseña" 
-        value={password} 
-        onChangeText={setPassword} 
+      <Input
+        placeholder="Contraseña"
+        value={password}
+        onChangeText={setPassword}
         secureTextEntry
         editable={!isLoading}
       />
-
       <Pressable>
         <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
       </Pressable>
-
-      <PrimaryButton 
-        label={isLoading ? "Iniciando sesión..." : "Log in"}
-        onPress={() => handleLogin(username, password)}
+      {error && <Text style={styles.error}>{error}</Text>}
+      <PrimaryButton
+        label={isLoading ? 'Iniciando sesión...' : 'Log in'}
+        onPress={handleLogin}
         disabled={isLoading}
       />
-
       <Text style={styles.or}>ó</Text>
-
-      <GoogleButton 
-        onPress={() => promptAsync()} 
-        disabled={isLoading}
-      />
-
+      <GoogleButton onPress={() => {}} disabled={isLoading} />
       <Pressable style={styles.ghostButton} disabled={isLoading}>
         <Text style={styles.ghostText}>Ingreso Temporal</Text>
       </Pressable>

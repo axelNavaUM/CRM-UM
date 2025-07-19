@@ -5,6 +5,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
+  containerMobile: {
+    paddingBottom: 0, // El SafeAreaView maneja el padding automáticamente
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -62,6 +65,9 @@ export const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+  },
+  contentMobile: {
+    paddingBottom: 120, // Espacio para la tab bar en móvil
   },
   card: {
     backgroundColor: '#e7edf3',
