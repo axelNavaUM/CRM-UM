@@ -81,6 +81,7 @@ export async function subirArchivosBucket(
       extension = 'pdf'
     } = archivos[i];
     try {
+      console.log(`[DEBUG] Intentando subir archivo #${i + 1}:`, fileUri);
       if (!fileUri?.trim()) throw new Error('URI del archivo no válido');
       let mimeType = 'application/octet-stream';
       let blob: Blob;
@@ -89,28 +90,30 @@ export async function subirArchivosBucket(
         if (!matches) throw new Error('Formato de data URI inválido');
         mimeType = matches[1];
         if (!allowedMimeTypes.includes(mimeType)) {
-          throw new Error(`Tipo de archivo no permitido: ${mimeType}`);
+          throw new Error(`[DEBUG] Tipo de archivo no permitido: ${mimeType}`);
         }
         const byteCharacters = atob(matches[2]);
         const byteArray = new Uint8Array([...byteCharacters].map(c => c.charCodeAt(0)));
         blob = new Blob([byteArray], { type: mimeType });
       } else {
+        console.log(`[DEBUG] Fetching file from URI:`, fileUri);
         const response = await fetch(fileUri);
         if (!response.ok) {
-          throw new Error(`Error al obtener el archivo: ${response.statusText}`);
+          throw new Error(`[DEBUG] Error al obtener el archivo: ${response.statusText}`);
         }
         blob = await response.blob();
         mimeType = blob.type || mimeType;
         if (!allowedMimeTypes.includes(mimeType)) {
-          throw new Error(`Tipo de archivo no permitido: ${mimeType}`);
+          throw new Error(`[DEBUG] Tipo de archivo no permitido: ${mimeType}`);
         }
       }
+      console.log(`[DEBUG] Blob size: ${blob.size}, type: ${blob.type}`);
       if (blob.size > 10 * 1024 * 1024) {
-        throw new Error('El archivo es demasiado grande. Máximo 10MB permitido.');
+        throw new Error('[DEBUG] El archivo es demasiado grande. Máximo 10MB permitido.');
       }
       const storagePath = `${safePath}/${tipoDocumento.toLowerCase()}_${Date.now()}.${extension}`;
-      // Progreso simulado (ya que Supabase JS no da progreso real en upload)
       if (onProgress) onProgress(i, 10);
+      console.log(`[DEBUG] Subiendo a Supabase Storage en: ${storagePath}`);
       const { error: uploadError } = await supabase
         .storage
         .from('crmum')
@@ -120,8 +123,9 @@ export async function subirArchivosBucket(
         });
       if (onProgress) onProgress(i, 100);
       if (uploadError) {
+        console.error(`[DEBUG] Error de subida Supabase:`, uploadError);
         if (uploadError.message.includes('Request Header Or Cookie Too Large')) {
-          throw new Error('El archivo es demasiado grande para subir. Intenta con un archivo menor a 5MB.');
+          throw new Error('[DEBUG] El archivo es demasiado grande para subir. Intenta con un archivo menor a 5MB.');
         }
         throw uploadError;
       }
@@ -130,14 +134,14 @@ export async function subirArchivosBucket(
         .from('crmum')
         .getPublicUrl(storagePath).data;
       if (!publicUrl) {
-        throw new Error('No se pudo obtener la URL pública del archivo');
+        throw new Error('[DEBUG] No se pudo obtener la URL pública del archivo');
       }
       resultados.push({ url: publicUrl, error: null });
-      console.log(`✅ Archivo subido correctamente: ${publicUrl}`);
+      console.log(`[DEBUG] ✅ Archivo subido correctamente: ${publicUrl}`);
     } catch (error: any) {
       resultados.push({ url: null, error: error.message });
       if (onProgress) onProgress(i, 0);
-      console.error(`❌ Error al subir el archivo ${i + 1}:`, error.message || error);
+      console.error(`[DEBUG] ❌ Error al subir el archivo ${i + 1}:`, error.message || error);
     }
   }
   return resultados;

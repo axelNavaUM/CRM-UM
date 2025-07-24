@@ -32,9 +32,9 @@ const Paso2CarreraCiclo: React.FC<Paso2CarreraCicloProps> = ({ datos, setDatos, 
         ))}
       </Picker>
       <Text style={{ marginBottom: 8, fontWeight: '500', marginTop: 16 }}>Ciclo automático:</Text>
-      <Input placeholder="Ciclo" value={datos.cicloAuto} editable={false} />
+      <Input placeholder="Ciclo" value={datos.cicloAuto || ""} editable={false} />
       <Text style={{ marginBottom: 8, fontWeight: '500', marginTop: 16 }}>Grupo:</Text>
-      <Input placeholder="Grupo" value={datos.grupo} onChangeText={text => setDatos({ ...datos, grupo: text })} />
+      <Input placeholder="Grupo" value={datos.grupo || ""} onChangeText={text => setDatos({ ...datos, grupo: text })} />
       <PrimaryButton label="Siguiente" disabled={!datos.carreraId || !datos.cicloAuto || !datos.grupo} onPress={onSiguiente} />
       <PrimaryButton label="Atrás" onPress={onAtras} />
     </View>

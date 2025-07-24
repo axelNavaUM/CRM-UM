@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shrek Insights - Reporte de Inteligencia de Negocios</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap');
+
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: #f4f1ed;
+      margin: 0;
+      padding: 0;
+      color: #2c2c2c;
+    }
+
+    header {
+      background: #89c57c;
+      padding: 2rem;
+      text-align: center;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 2rem;
+    }
+
+    h1, h2 {
+      margin-bottom: 1rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background: #d1e7d0;
+    }
+
+    .highlight {
+      color: #4a8539;
+      font-weight: bold;
+    }
+
+    .section-title {
+      color: #4a8539;
+      font-weight: 700;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Shrek Insights: Optimizando la Franquicia para el Futuro</h1>
+    <p><strong>Equipo Consultor:</strong> Axel Nava Hernández</p>
+  </header>
+
+  <div class="container">
+    <!-- Objetivo General -->
+    <div class="card">
+      <div class="section-title">Objetivo General</div>
+      <p>Aplicar conceptos de Inteligencia de Negocios para analizar datos de la franquicia Shrek, generar <span class="highlight">insights estratégicos</span> y proponer <span class="highlight">recomendaciones gerenciales</span> para maximizar el valor de futuras producciones o productos derivados.</p>
+    </div>
+
+    <!-- Dimensiones Clave Analizadas -->
+    <div class="card">
+      <div class="section-title">Dimensiones Clave Analizadas</div>
+      <ul>
+        <li>Tipo de Personaje (humano, criatura mágica, animal)</li>
+        <li>Género y Nacionalidad de la Voz</li>
+        <li>Rol del Personaje (principal, secundario, antagonista)</li>
+        <li>Escenarios Recurrentes</li>
+        <li>Tiempo en Pantalla</li>
+      </ul>
+    </div>
+
+    <!-- Análisis de Datos -->
+    <div class="card">
+      <div class="section-title">Análisis de Datos</div>
+      <h3>Personajes más Recurrentes</h3>
+      <table>
+        <tr>
+          <th>Personaje</th>
+          <th>Películas Aparecidas</th>
+          <th>Tiempo Prom. en Pantalla</th>
+          <th>Tipo de Personaje</th>
+        </tr>
+        <tr>
+          <td>Shrek</td>
+          <td>4</td>
+          <td>45 min</td>
+          <td>Humano</td>
+        </tr>
+        <tr>
+          <td>Burro</td>
+          <td>4</td>
+          <td>40 min</td>
+          <td>Animal</td>
+        </tr>
+        <tr>
+          <td>Fiona</td>
+          <td>4</td>
+          <td>35 min</td>
+          <td>Humano</td>
+        </tr>
+        <tr>
+          <td>Gato con Botas</td>
+          <td>3</td>
+          <td>20 min</td>
+          <td>Animal</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Análisis de Voces de Doblaje -->
+    <div class="card">
+      <div class="section-title">Voces de Doblaje</div>
+      <table>
+        <tr>
+          <th>Personaje</th>
+          <th>Actor de Voz</th>
+          <th>Nacionalidad</th>
+          <th>Películas Aparecidas</th>
+        </tr>
+        <tr>
+          <td>Shrek</td>
+          <td>Mike Myers</td>
+          <td>Canadiense</td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td>Burro</td>
+          <td>Eddie Murphy</td>
+          <td>Estadounidense</td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td>Fiona</td>
+          <td>Cameron Diaz</td>
+          <td>Estadounidense</td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td>Gato con Botas</td>
+          <td>Antonio Banderas</td>
+          <td>Español</td>
+          <td>3</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Escenarios Recurrentes -->
+    <div class="card">
+      <div class="section-title">Escenarios Recurrentes</div>
+      <table>
+        <tr>
+          <th>Escenario</th>
+          <th>Películas Aparecidas</th>
+          <th>Descripción</th>
+        </tr>
+        <tr>
+          <td>Pantano de Shrek</td>
+          <td>4</td>
+          <td>El hogar de Shrek, un lugar icónico y central en la historia.</td>
+        </tr>
+        <tr>
+          <td>Castillo de Fiona</td>
+          <td>4</td>
+          <td>El castillo donde Fiona fue encerrada, simboliza su transformación.</td>
+        </tr>
+        <tr>
+          <td>El Reino de Muy Muy Lejano</td>
+          <td>2, 3</td>
+          <td>Un reino lleno de personajes de cuentos de hadas.</td>
+        </tr>
+        <tr>
+          <td>El Bosque Encantado</td>
+          <td>1, 2</td>
+          <td>Un lugar mágico donde se encuentran varios personajes.</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Hipótesis del Proyecto -->
+    <div class="card">
+      <div class="section-title">Hipótesis del Proyecto</div>
+      <ul>
+        <li>La recurrencia de la voz de Burro es un factor clave en la conexión emocional con la audiencia.</li>
+        <li>Los escenarios icónicos como el Pantano de Shrek son cruciales para mantener la identidad de la franquicia.</li>
+        <li>El reconocimiento del actor de voz influye en la recepción positiva del público en diferentes mercados.</li>
+      </ul>
+    </div>
+
+    <!-- Gráfica de Personajes por Tipo -->
+    <div class="card">
+      <div class="section-title">Gráfica de Personajes por Tipo</div>
+      <canvas id="chartPersonajes"></canvas>
+    </div>
+
+    <!-- Insights y Recomendaciones -->
+    <div class="card">
+      <div class="section-title">Insights y Recomendaciones</div>
+      <ul>
+        <li><strong>Insight:</strong> La permanencia de voces originales crea fidelidad en el público. <br><strong>Recomendación:</strong> Priorizar contratos a largo plazo con actores de voz emblemáticos.</li>
+        <li><strong>Insight:</strong> Los escenarios coloridos y reconocibles favorecen el merchandising. <br><strong>Recomendación:</strong> Diseñar productos y juegos con base en estos escenarios.</li>
+        <li><strong>Insight:</strong> Los personajes animales tienen alta aceptación en públicos infantiles. <br><strong>Recomendación:</strong> Explorar nuevas historias de personajes secundarios.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('chartPersonajes').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Humanos', 'Criaturas Mágicas', 'Animales'],
+        datasets: [{
+          label: 'Cantidad de Personajes',
+          data: [5, 8, 6],
+          backgroundColor: ['#4a8539', '#6fa659', '#a3cf98'],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

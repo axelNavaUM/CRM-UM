@@ -1,4 +1,8 @@
-import { useRegistroAlumno } from '@/hooks/registroAlumno/useRegistroAlumno';
+import { useAuth } from '@/context/AuthContext';
+import { RegistroAlumnoModel } from '@/models/registroAlumnoModel';
+import { subirArchivosBucket } from '@/services/subirArchivoBucket';
+import { supabase } from '@/services/supabase/supaConf';
+import { useRegistroAlumnoStore } from '@/store/registroDeAlumno/datosAlumnoStore';
 import React, { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Paso1DatosPersonales from '../altaAlumnosView/paso1';
@@ -14,36 +18,33 @@ const PASOS = [
 ];
 
 const AltaAlumno = () => {
-  const [pasoActual, setPasoActual] = useState(1);
+  // Usar Zustand store para persistencia real
+  const pasoActual = useRegistroAlumnoStore(state => state.pasoActual);
+  const setPaso = useRegistroAlumnoStore(state => state.setPaso);
+  const alumno = useRegistroAlumnoStore(state => state.alumno);
+  const setAlumno = useRegistroAlumnoStore(state => state.setAlumno);
+  const documentos = useRegistroAlumnoStore(state => state.documentos);
+  const setDocumento = useRegistroAlumnoStore(state => state.setDocumento);
+  const pago = useRegistroAlumnoStore(state => state.pago);
+  const setPago = useRegistroAlumnoStore(state => state.setPago);
+  const contratoAceptado = useRegistroAlumnoStore(state => state.contratoAceptado);
+  const setContratoAceptado = useRegistroAlumnoStore(state => state.setContratoAceptado);
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isWeb = Platform.OS === 'web';
-  
-  // Estado global del formulario
-  const {
-    form,
-    setForm,
-    generarMatriculaUnica,
-    carreras,
-    fetchCarreras,
-    ciclos,
-    fetchCiclos,
-    registrarAlumno,
-    // Archivos del hook
-    fileCurp, setFileCurp,
-    fileActa, setFileActa,
-    fileCert, setFileCert,
-    filePago, setFilePago,
-  } = useRegistroAlumno();
+
+  // Carreras y ciclos del store
+  const carreras = useRegistroAlumnoStore(state => state.carreras);
+  const ciclos = useRegistroAlumnoStore(state => state.ciclos);
+  const fetchCarreras = useRegistroAlumnoStore(state => state.fetchCarreras);
+  const fetchCiclos = useRegistroAlumnoStore(state => state.fetchCiclos);
+
+  const { user } = useAuth();
 
   React.useEffect(() => {
     // Solo asignar matrícula si no existe
-    if (!form.matricula) {
-      generarMatriculaUnica().then(matricula => {
-        setForm(prev => ({ ...prev, matricula }));
-      }).catch(() => {
-        setForm(prev => ({ ...prev, matricula: '' }));
-      });
+    if (!(alumno as any).matricula) {
+      useRegistroAlumnoStore.getState().generateMatriculaUnica().catch(() => {});
     }
     // Obtener carreras al montar
     fetchCarreras();
@@ -51,17 +52,17 @@ const AltaAlumno = () => {
 
   // Cuando cambia la carrera seleccionada, obtener ciclos
   React.useEffect(() => {
-    if (form.carreraId) {
-      fetchCiclos(form.carreraId);
+    if ((alumno as any).carreraId) {
+      fetchCiclos(Number((alumno as any).carreraId));
     }
-  }, [form.carreraId]);
+  }, [(alumno as any).carreraId]);
 
   // Cuando cambian los ciclos, asignar el primer ciclo automáticamente (siempre que haya ciclos)
   React.useEffect(() => {
     if (ciclos.length > 0) {
-      setForm(prev => ({ ...prev, cicloAuto: ciclos[0].nombre }));
+      setAlumno({ ...(alumno as any), cicloAuto: ciclos[0].nombre });
     } else {
-      setForm(prev => ({ ...prev, cicloAuto: '' }));
+      setAlumno({ ...(alumno as any), cicloAuto: '' });
     }
   }, [ciclos]);
   
@@ -71,99 +72,204 @@ const AltaAlumno = () => {
   const [success, setSuccess] = useState<string | undefined>(undefined);
 
   // Navegación entre pasos
-  const siguientePaso = () => setPasoActual(p => Math.min(p + 1, PASOS.length));
-  const pasoAnterior = () => setPasoActual(p => Math.max(p - 1, 1));
+  const siguientePaso = () => setPaso(Math.min(pasoActual + 1, PASOS.length));
+  const pasoAnterior = () => setPaso(Math.max(pasoActual - 1, 1));
 
-  // Finalizar registro (ahora sí guarda en Supabase con archivos)
+  // Finalizar registro usando los datos y archivos del store
   const finalizarRegistro = async () => {
     setLoading(true);
     setError(undefined);
     setSuccess(undefined);
     try {
-      // Verificar que el pago esté subido (obligatorio)
-      if (!filePago) {
+      // LOG para depuración
+      console.log('[DEBUG] documentos:', documentos);
+      console.log('[DEBUG] documentos["formato_pago"]:', documentos['formato_pago']);
+      if (!documentos['formato_pago']) {
         throw new Error('El comprobante de pago es obligatorio para completar el registro');
       }
+
+      // 1. Registrar alumno en la tabla 'alumnos'
+      // Obtener el id del asesor desde la tabla usuariosum
+      let asesor_id = null;
+      if (user?.email) {
+        const { data: usuario, error: usuarioError } = await supabase
+          .from('usuariosum')
+          .select('idusuario')
+          .eq('correoinstitucional', user.email)
+          .single();
+        if (!usuarioError && usuario) {
+          asesor_id = usuario.idusuario;
+        }
+      }
       
-      await registrarAlumno();
-      setSuccess('¡Registro exitoso! Los documentos han sido subidos correctamente.');
+      const alumnoData = {
+        nombre: (alumno as any).nombre,
+        apellidos: (alumno as any).apellidos,
+        email: (alumno as any).email,
+        matricula: (alumno as any).matricula,
+        carrera_id: Number((alumno as any).carreraId),
+        ciclo_id: Number(ciclos.find(c => c.nombre === (alumno as any).cicloAuto)?.id),
+        status: 'pendiente',
+        asesor_id: asesor_id,
+      };
+      const alumnoRegistrado = await RegistroAlumnoModel.registrarAlumno(alumnoData);
+
+      // 2. Construir array de archivos a subir
+      const archivos = [];
+      if (documentos['curp']) {
+        archivos.push({
+          fileUri: documentos['curp'].uri || documentos['curp'],
+          tipoDocumento: 'curp',
+          extension: 'pdf',
+          area: (alumno as any).area || '',
+          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          ciclo: (alumno as any).cicloAuto || '',
+          grupo: (alumno as any).grupo || '',
+          matricula: (alumno as any).matricula || '',
+        });
+      }
+      if (documentos['acta']) {
+        archivos.push({
+          fileUri: documentos['acta'].uri || documentos['acta'],
+          tipoDocumento: 'acta',
+          extension: 'pdf',
+          area: (alumno as any).area || '',
+          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          ciclo: (alumno as any).cicloAuto || '',
+          grupo: (alumno as any).grupo || '',
+          matricula: (alumno as any).matricula || '',
+        });
+      }
+      if (documentos['certificado_prepa']) {
+        archivos.push({
+          fileUri: documentos['certificado_prepa'].uri || documentos['certificado_prepa'],
+          tipoDocumento: 'certificado_prepa',
+          extension: 'pdf',
+          area: (alumno as any).area || '',
+          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          ciclo: (alumno as any).cicloAuto || '',
+          grupo: (alumno as any).grupo || '',
+          matricula: (alumno as any).matricula || '',
+        });
+      }
+      if (documentos['formato_pago']) {
+        archivos.push({
+          fileUri: documentos['formato_pago'].uri || documentos['formato_pago'],
+          tipoDocumento: 'formato_pago',
+          extension: 'pdf',
+          area: (alumno as any).area || '',
+          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          ciclo: (alumno as any).cicloAuto || '',
+          grupo: (alumno as any).grupo || '',
+          matricula: (alumno as any).matricula || '',
+        });
+      }
+
+      // 3. Subir archivos
+      let resultados: {url: string|null, error: string|null}[] = [];
+      if (archivos.length > 0) {
+        resultados = await subirArchivosBucket(archivos);
+        const errores = resultados.filter(r => r.error);
+        if (errores.length > 0) {
+          throw new Error('Error al subir uno o más archivos: ' + errores.map(e => e.error).join(', '));
+        }
+      }
+
+      // 4. Registrar documentos en la tabla documentos_alumno
+      for (let i = 0; i < resultados.length; i++) {
+        const resultado = resultados[i];
+        if (resultado.url) {
+          await RegistroAlumnoModel.subirDocumento({
+            alumno_id: alumnoRegistrado.id,
+            tipo_documento: archivos[i].tipoDocumento,
+            url_archivo: resultado.url,
+          });
+        }
+      }
+
+      // 5. Registrar pago en la tabla pagos
+      await RegistroAlumnoModel.registrarPago({
+        alumno_id: alumnoRegistrado.id,
+        modo_pago: 'efectivo', // O usa el modo real si lo tienes en el formulario
+        status: 'pendiente',
+      });
+
+      setSuccess('¡Registro exitoso! Los documentos han sido subidos y registrados correctamente.');
     } catch (err: any) {
       setError(err.message || 'Error al registrar alumno');
     }
     setLoading(false);
   };
 
-  // Render dinámico de pasos
+  // Render dinámico de pasos usando el store
   const renderPaso = () => {
-    // No mostrar paso 1 hasta que la matrícula esté lista
-    if (pasoActual === 1 && !form.matricula) {
-      return <Text style={{marginTop: 32, fontSize: 16}}>Generando matrícula...</Text>;
-    }
-    switch (pasoActual) {
-      case 1:
-        return (
-          <Paso1DatosPersonales
-            datos={form}
-            setDatos={setForm}
-            onSiguiente={siguientePaso}
-          />
-        );
-      case 2:
-        return (
-          <Paso2CarreraCiclo
-            datos={form}
-            setDatos={setForm}
-            carreras={carreras}
-            ciclos={ciclos}
-            onSiguiente={siguientePaso}
-            onAtras={pasoAnterior}
-          />
-        );
-      case 3:
-        return (
-          <Paso3SubirDocumentos
-            fileCurp={fileCurp}
-            setFileCurp={setFileCurp}
-            fileActa={fileActa}
-            setFileActa={setFileActa}
-            fileCert={fileCert}
-            setFileCert={setFileCert}
-            filePago={filePago}
-            setFilePago={setFilePago}
-            onSiguiente={siguientePaso}
-            onAtras={pasoAnterior}
-          />
-        );
-      case 4:
-        return (
-          <Paso4Contrato
-            contrato={generarContrato()}
-            contratoAceptado={form.contratoAceptado}
-            setContratoAceptado={v => setForm(f => ({ ...f, contratoAceptado: v }))}
-            onFinalizar={finalizarRegistro}
-            onAtras={pasoAnterior}
-            loading={loading}
-            error={error}
-            success={success}
-          />
-        );
-      default:
-        return null;
-    }
+    // Asegura que los campos requeridos existen
+    const fileActa = (documentos['acta'] as any) || null;
+    const fileCert = (documentos['certificado_prepa'] as any) || null;
+    const filePago = (documentos['formato_pago'] as any) || (pago as any) || null;
+    const contrato = generarContrato();
+    return {
+      1: (
+        <Paso1DatosPersonales
+          datos={{
+            nombre: (alumno as any).nombre || '',
+            apellidos: (alumno as any).apellidos || '',
+            email: (alumno as any).email || '',
+            matricula: (alumno as any).matricula || '',
+          }}
+          setDatos={setAlumno}
+          onSiguiente={siguientePaso}
+        />
+      ),
+      2: (
+        <Paso2CarreraCiclo
+          datos={alumno as any}
+          setDatos={setAlumno}
+          carreras={carreras as any}
+          ciclos={ciclos as any}
+          onSiguiente={siguientePaso}
+          onAtras={pasoAnterior}
+        />
+      ),
+      3: (
+        <Paso3SubirDocumentos
+          fileCurp={(documentos['curp'] as any) || null}
+          setFileCurp={file => setDocumento('curp', file)}
+          fileActa={fileActa}
+          setFileActa={file => setDocumento('acta', file)}
+          fileCert={fileCert}
+          setFileCert={file => setDocumento('certificado_prepa', file)}
+          filePago={filePago}
+          setFilePago={file => setDocumento('formato_pago', file)}
+          onSiguiente={siguientePaso}
+          onAtras={pasoAnterior}
+        />
+      ),
+      4: (
+        <Paso4Contrato
+          contrato={contrato}
+          contratoAceptado={contratoAceptado}
+          setContratoAceptado={setContratoAceptado}
+          onFinalizar={finalizarRegistro}
+          onAtras={pasoAnterior}
+          loading={loading}
+          error={error}
+          success={success}
+        />
+      ),
+    }[pasoActual] || null;
   };
 
   // Generar contrato con información de documentos
   const generarContrato = () => {
     const documentosSubidos = [];
-    if (fileCurp) documentosSubidos.push('CURP');
-    if (fileActa) documentosSubidos.push('Acta de nacimiento');
-    if (fileCert) documentosSubidos.push('Certificado de preparatoria');
-    if (filePago) documentosSubidos.push('Comprobante de pago');
+    if (documentos['acta']) documentosSubidos.push('Acta de nacimiento');
+    if (documentos['certificado_prepa']) documentosSubidos.push('Certificado de preparatoria');
+    if (documentos['formato_pago'] || pago) documentosSubidos.push('Comprobante de pago');
 
     const documentosFaltantes = [];
-    if (!fileCurp) documentosFaltantes.push('CURP');
-    if (!fileActa) documentosFaltantes.push('Acta de nacimiento');
-    if (!fileCert) documentosFaltantes.push('Certificado de preparatoria');
+    if (!documentos['acta']) documentosFaltantes.push('Acta de nacimiento');
+    if (!documentos['certificado_prepa']) documentosFaltantes.push('Certificado de preparatoria');
 
     let prorroga = '';
     if (documentosFaltantes.length > 0) {
@@ -173,12 +279,12 @@ const AltaAlumno = () => {
     return `CONTRATO DE INSCRIPCIÓN
 
 DATOS DEL ALUMNO:
-Nombre: ${form.nombre} ${form.apellidos}
-Email: ${form.email}
-Matrícula: ${form.matricula}
-Carrera: ${carreras.find(c => c.id === form.carreraId)?.nombre || 'No seleccionada'}
-Ciclo: ${form.cicloAuto}
-Grupo: ${form.grupo}
+Nombre: ${(alumno as any).nombre} ${(alumno as any).apellidos}
+Email: ${(alumno as any).email}
+Matrícula: ${(alumno as any).matricula}
+Carrera: ${'No seleccionada'}
+Ciclo: ${(alumno as any).cicloAuto}
+Grupo: ${(alumno as any).grupo}
 
 DOCUMENTOS ENTREGADOS:
 ${documentosSubidos.length > 0 ? documentosSubidos.join(', ') : 'Ninguno'}
