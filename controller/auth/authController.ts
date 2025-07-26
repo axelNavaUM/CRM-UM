@@ -1,5 +1,5 @@
 // src/controllers/loginController.ts
-import { authModel } from '@/models/authModel';
+import { authModel } from '@/models/auth/authModel';
 
 export async function loginController(username: string, password: string) {
 
@@ -10,4 +10,8 @@ export async function loginController(username: string, password: string) {
   }
 
   return response.session;
+}
+
+export async function logoutController() {
+  await authModel.logout();
 }

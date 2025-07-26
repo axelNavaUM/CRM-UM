@@ -1,4 +1,4 @@
-import { userModel } from '@/models/userModel';
+import { userModel } from '@/models/auth/userModel';
 import { googleAuthService } from '@/services/auth/authGoogle';
 
 export const authController = {

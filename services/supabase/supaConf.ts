@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import { AuthResponse } from '@supabase/supabase-js';
+import { createClient, AuthResponse } from '@supabase/supabase-js';
+
 
 
 export const supabase = createClient(

@@ -1,4 +1,4 @@
-import { userModel } from '@/models/userModel';
+import { userModel } from '@/models/auth/userModel';
 import { useSessionStore } from '@/store/session/sessionStore';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';

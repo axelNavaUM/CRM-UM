@@ -1,4 +1,4 @@
-import { authModel } from '@/models/authModel';
+import { authModel } from '@/models/auth/authModel';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -82,12 +82,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    console.log('🚪 Iniciando logout en AuthContext');
     if (typeof window !== 'undefined' && window.localStorage) {
+      console.log('🚪 Cerrando sesión (web): eliminando STORAGE_KEY', STORAGE_KEY);
       window.localStorage.removeItem(STORAGE_KEY);
+      console.log('🚪 Storage eliminado en web');
     } else {
+      console.log('🚪 Cerrando sesión (móvil): eliminando STORAGE_KEY', STORAGE_KEY);
       await AsyncStorage.removeItem(STORAGE_KEY);
+      console.log('🚪 Storage eliminado en móvil');
     }
+    console.log('🚪 Limpiando estado del usuario');
     setUser(null);
+    console.log('🚪 Logout completado en AuthContext');
   };
 
   const value: AuthContextType = {

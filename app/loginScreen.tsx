@@ -3,9 +3,9 @@ import { Input } from '@/components/ui/Input';
 import Logo from '@/components/ui/Logo';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import { useAuth } from '@/context/AuthContext';
+import { styles } from '@/style/loginScreen';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { styles } from '../../style/loginScreen';
 
 export default function LoginScreen() {
   const { login, isLoading } = useAuth();
@@ -14,11 +14,14 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
+    console.log('🔐 Intentando login con:', email);
     setError(null);
     try {
       await login(email, password);
+      console.log('🔐 Login exitoso, redirección automática');
       // Redirección automática la maneja el layout si la sesión está activa
     } catch (err: any) {
+      console.error('🔐 Error en login:', err);
       setError(err.message || 'Error al iniciar sesión');
     }
   };
