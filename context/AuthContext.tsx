@@ -9,6 +9,10 @@ type User = {
   name: string;
   email: string;
   avatarUrl?: string;
+  idarea?: number;
+  nombreusuario?: string;
+  apellido?: string;
+  correoinstitucional?: string;
   [key: string]: any;
 };
 
@@ -46,6 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: parsed.nombre || parsed.nombreusuario || '',
           email: parsed.correoinstitucional || parsed.email || '',
           avatarUrl: parsed.avatarUrl || '',
+          // Preservar campos cruciales para roles
+          idarea: parsed.idarea,
+          nombreusuario: parsed.nombreusuario,
+          apellido: parsed.apellido,
+          correoinstitucional: parsed.correoinstitucional,
         };
         setUser(mappedUser);
       }
@@ -61,6 +70,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: userData.nombre || userData.nombreusuario || '',
       email: userData.correoinstitucional || userData.email || '',
       avatarUrl: userData.avatarUrl || '',
+      // Preservar campos cruciales para roles
+      idarea: userData.idarea,
+      nombreusuario: userData.nombreusuario,
+      apellido: userData.apellido,
+      correoinstitucional: userData.correoinstitucional,
     };
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(mappedUser));

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { navbarStyles } from '../../style/navbar';
 
 export default function SideNavbar() {
@@ -10,7 +10,7 @@ export default function SideNavbar() {
           style={navbarStyles.avatar}
           source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDH32...' }}
         />
-        <Text style={navbarStyles.title}>Universidad</Text>
+<Text style={navbarStyles.title}>Universidad</Text>
       </View>
 
       <View style={navbarStyles.menu}>

@@ -69,22 +69,41 @@ export interface PeticionConDetalles extends PeticionCambioCarrera {
 }
 
 interface CambioCarreraStore {
-  // Estado
-  peticiones: PeticionConDetalles[];
+  peticiones: PeticionCambioCarrera[];
   notificaciones: Notificacion[];
   notificacionesNoLeidas: number;
   isLoading: boolean;
   error: string | null;
-  
-  // Acciones
+  historialPeticiones: any[];
+  tramitesPendientes: {
+    tieneTramitesPendientes: boolean;
+    tramitesPendientes: string[];
+    status: string;
+    documentosFaltantes: string[];
+  } | null;
+  documentosFaltantes: {
+    documentosFaltantes: string[];
+    documentosSubidos: string[];
+    documentosInfo: any[];
+  } | null;
+  esControlEscolar: boolean;
+
   fetchPeticionesPorAsesor: (asesor_id: number) => Promise<void>;
   fetchPeticionesPendientes: () => Promise<void>;
   crearPeticion: (peticion: Omit<PeticionCambioCarrera, 'id' | 'estado' | 'fecha_solicitud'>) => Promise<{ success: boolean; error?: string }>;
   aprobarPeticion: (peticion_id: number, jefe_id: number, contraseña_jefe: string) => Promise<{ success: boolean; error?: string }>;
   rechazarPeticion: (peticion_id: number, jefe_id: number, contraseña_jefe: string, comentarios?: string) => Promise<{ success: boolean; error?: string }>;
-  fetchNotificaciones: (usuario_id: number) => Promise<void>;
   marcarNotificacionLeida: (notificacion_id: number) => Promise<void>;
+  fetchNotificaciones: (usuario_id: number) => Promise<void>;
   fetchNotificacionesNoLeidas: (usuario_id: number) => Promise<void>;
+  verificarTramitesPendientes: (alumno_id: number) => Promise<void>;
+  obtenerHistorialPeticiones: (alumno_id: number) => Promise<void>;
+  obtenerPeticionesPendientesAlumno: (alumno_id: number) => Promise<any[]>;
+  verificarEsControlEscolar: (userEmail: string) => Promise<void>;
+  obtenerDocumentosFaltantes: (alumno_id: number) => Promise<void>;
+  agregarDocumentoFaltante: (alumno_id: number, tipo_documento: string, url_archivo: string, userEmail: string) => Promise<{ success: boolean; error?: string }>;
+  actualizarStatusAlumno: (alumno_id: number) => Promise<{ success: boolean; error?: string }>;
+
   clearError: () => void;
 }
 
@@ -94,6 +113,10 @@ export const useCambioCarreraStore = create<CambioCarreraStore>((set, get) => ({
   notificacionesNoLeidas: 0,
   isLoading: false,
   error: null,
+  historialPeticiones: [],
+  tramitesPendientes: null,
+  documentosFaltantes: null,
+  esControlEscolar: false,
 
   fetchPeticionesPorAsesor: async (asesor_id: number) => {
     set({ isLoading: true, error: null });
@@ -198,6 +221,87 @@ export const useCambioCarreraStore = create<CambioCarreraStore>((set, get) => ({
       set({ notificacionesNoLeidas: count });
     } catch (error) {
       console.error('Error al obtener notificaciones no leídas:', error);
+    }
+  },
+
+  verificarTramitesPendientes: async (alumno_id: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const resultado = await CambioCarreraController.verificarTramitesPendientes(alumno_id);
+      set({ tramitesPendientes: resultado, isLoading: false });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+
+  obtenerHistorialPeticiones: async (alumno_id: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const historial = await CambioCarreraController.obtenerHistorialPeticiones(alumno_id);
+      set({ historialPeticiones: historial, isLoading: false });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+
+  obtenerPeticionesPendientesAlumno: async (alumno_id: number) => {
+    try {
+      const peticiones = await CambioCarreraController.obtenerPeticionesPendientesAlumno(alumno_id);
+      return peticiones;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage });
+      return [];
+    }
+  },
+
+  verificarEsControlEscolar: async (userEmail: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const resultado = await CambioCarreraController.esControlEscolar(userEmail);
+      set({ esControlEscolar: resultado, isLoading: false });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+
+  obtenerDocumentosFaltantes: async (alumno_id: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const resultado = await CambioCarreraController.obtenerDocumentosFaltantes(alumno_id);
+      set({ documentosFaltantes: resultado, isLoading: false });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+    }
+  },
+
+  agregarDocumentoFaltante: async (alumno_id: number, tipo_documento: string, url_archivo: string, userEmail: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await CambioCarreraController.agregarDocumentoFaltante(alumno_id, tipo_documento, url_archivo, userEmail);
+      set({ isLoading: false });
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+      return { success: false, error: errorMessage };
+    }
+  },
+
+  actualizarStatusAlumno: async (alumno_id: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const resultado = await CambioCarreraController.actualizarStatusAlumno(alumno_id);
+      set({ isLoading: false });
+      return { success: resultado };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      set({ error: errorMessage, isLoading: false });
+      return { success: false, error: errorMessage };
     }
   },
 

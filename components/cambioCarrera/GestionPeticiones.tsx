@@ -2,7 +2,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/context/AuthContext';
 import { useFirmas } from '@/hooks/cambioCarrera/useFirmas';
-import React, { useEffect, useState } from 'react';
+import { useScreenPermissionsStore } from '@/store/permisos/screenPermissionsStore';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { EstadisticasCards } from './EstadisticasCards';
 import { FiltrosPeticiones } from './FiltrosPeticiones';
@@ -22,6 +23,19 @@ export const GestionPeticiones: React.FC = () => {
 
   const [filtroActivo, setFiltroActivo] = useState<'todas' | 'pendientes' | 'aprobadas' | 'rechazadas'>('todas');
   const [vistaActiva, setVistaActiva] = useState<'todas' | 'mis-pendientes'>('mis-pendientes');
+  const { userRoleInfo } = useScreenPermissionsStore();
+
+  const isDirector = useMemo(() => {
+    const normalize = (v?: string) => (v || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    return normalize(userRoleInfo?.rolarea) === 'director';
+  }, [userRoleInfo]);
+
+  // Si es director, por defecto mostrar "todas" para gestión completa
+  useEffect(() => {
+    if (isDirector && vistaActiva !== 'todas') {
+      setVistaActiva('todas');
+    }
+  }, [isDirector]);
 
   // Cargar datos iniciales
   useEffect(() => {

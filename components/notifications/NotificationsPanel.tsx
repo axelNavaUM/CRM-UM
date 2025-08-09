@@ -3,7 +3,16 @@ import React from 'react';
 import { FlatList, Text, TouchableOpacity, View } from 'react-native';
 
 export const NotificationsPanel: React.FC<{ onClose?: () => void, onNotificationPress?: (notificacion: any) => void }> = ({ onClose, onNotificationPress }) => {
-  const { notificaciones, loading } = useNotifications();
+  const { notificaciones, loading, markAsRead } = useNotifications();
+
+  const handleNotificationPress = async (notification: any) => {
+    // Marcar como leída si no lo está
+    if (!notification.leida) {
+      await markAsRead(notification.id);
+    }
+    
+    onNotificationPress?.(notification);
+  };
 
   if (loading) return <Text>Cargando notificaciones...</Text>;
 
@@ -22,7 +31,7 @@ export const NotificationsPanel: React.FC<{ onClose?: () => void, onNotification
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => onNotificationPress && onNotificationPress(item)}
+            onPress={() => handleNotificationPress(item)}
             style={{
               backgroundColor: item.leida ? '#f1f1f1' : '#e0f7fa',
               borderRadius: 8,

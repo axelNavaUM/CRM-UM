@@ -1,4 +1,6 @@
 import { supabase } from '@/services/supabase/supaConf';
+import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
 
 type ArchivoInfo = {
   fileUri: string;
@@ -84,7 +86,8 @@ export async function subirArchivosBucket(
       console.log(`[DEBUG] Intentando subir archivo #${i + 1}:`, fileUri);
       if (!fileUri?.trim()) throw new Error('URI del archivo no válido');
       let mimeType = 'application/octet-stream';
-      let blob: Blob;
+      let blob: Blob | null = null;
+      let nativePathForUpload: string | null = null;
       if (fileUri.startsWith('data:')) {
         const matches = fileUri.match(/^data:([^;]+);base64,(.+)$/);
         if (!matches) throw new Error('Formato de data URI inválido');
@@ -95,16 +98,72 @@ export async function subirArchivosBucket(
         const byteCharacters = atob(matches[2]);
         const byteArray = new Uint8Array([...byteCharacters].map(c => c.charCodeAt(0)));
         blob = new Blob([byteArray], { type: mimeType });
+      } else if (Platform.OS !== 'web' && (fileUri.startsWith('file://') || fileUri.startsWith('content://'))) {
+        // Manejo nativo (Android/iOS): crear blob con fetch(fileUri) o usar RN file descargado en caché
+        console.log('[DEBUG] Leyendo archivo nativo con FileSystem:', fileUri);
+        const ext = (extension || (fileUri.split('.').pop() || 'pdf')).toLowerCase();
+        const guessedMime = ext === 'pdf' ? 'application/pdf'
+                          : ext === 'png' ? 'image/png'
+                          : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+                          : 'application/octet-stream';
+        mimeType = guessedMime;
+        // Si es content://, descargar a caché para obtener uri file:// estable
+        let pathToRead = fileUri;
+        if (fileUri.startsWith('content://')) {
+          const tmpFile = `${FileSystem.cacheDirectory}upload_${Date.now()}.${ext}`;
+          const dl = await FileSystem.downloadAsync(fileUri, tmpFile);
+          pathToRead = dl.uri;
+        }
+        // Obtener blob directamente con fetch sobre file:// (soportado por RN/Expo)
+        const response = await fetch(pathToRead);
+        blob = await response.blob();
+        nativePathForUpload = pathToRead;
+        console.log(`[DEBUG] Blob nativo creado con fetch(file): size=${blob.size}, type=${(blob as any).type}`);
+        if (blob.size === 0) {
+          throw new Error('No se pudo leer el archivo (tamaño 0)');
+        }
+        if (!allowedMimeTypes.includes(mimeType)) {
+          throw new Error(`Tipo de archivo no permitido: ${mimeType}`);
+        }
       } else {
         console.log(`[DEBUG] Fetching file from URI:`, fileUri);
-        const response = await fetch(fileUri);
-        if (!response.ok) {
-          throw new Error(`[DEBUG] Error al obtener el archivo: ${response.statusText}`);
-        }
-        blob = await response.blob();
-        mimeType = blob.type || mimeType;
-        if (!allowedMimeTypes.includes(mimeType)) {
-          throw new Error(`[DEBUG] Tipo de archivo no permitido: ${mimeType}`);
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout móvil/web
+          // En Expo Go Android, algunas URIs http(s) externas pueden fallar por CORS/red.
+          // Si falla, reintentar 1 vez.
+          let response = await fetch(fileUri, {
+            method: 'GET',
+            headers: {
+              'Accept': '*/*',
+            },
+            signal: controller.signal,
+          });
+          if (!response.ok) {
+            console.warn('[DEBUG] Reintento fetch de archivo por status:', response.status, response.statusText);
+            response = await fetch(fileUri, { method: 'GET' });
+          }
+          clearTimeout(timeout);
+          
+          if (!response.ok) {
+            console.error(`[DEBUG] HTTP Error: ${response.status} ${response.statusText}`);
+            throw new Error(`Error al obtener el archivo: ${response.status} ${response.statusText}`);
+          }
+          
+          blob = await response.blob();
+          mimeType = blob.type || mimeType;
+          
+          console.log(`[DEBUG] Blob obtenido: size=${blob.size}, type=${blob.type}`);
+          
+          if (!allowedMimeTypes.includes(mimeType)) {
+            throw new Error(`Tipo de archivo no permitido: ${mimeType}`);
+          }
+        } catch (fetchError: any) {
+          console.error(`[DEBUG] Error en fetch:`, fetchError);
+          if (fetchError.message.includes('Network request failed')) {
+            throw new Error('Error de conexión. Verifica tu conexión a internet e intenta de nuevo.');
+          }
+          throw new Error(`Error al procesar el archivo: ${fetchError.message}`);
         }
       }
       console.log(`[DEBUG] Blob size: ${blob.size}, type: ${blob.type}`);
@@ -114,13 +173,47 @@ export async function subirArchivosBucket(
       const storagePath = `${safePath}/${tipoDocumento.toLowerCase()}_${Date.now()}.${extension}`;
       if (onProgress) onProgress(i, 10);
       console.log(`[DEBUG] Subiendo a Supabase Storage en: ${storagePath}`);
-      const { error: uploadError } = await supabase
-        .storage
-        .from('crmum')
-        .upload(storagePath, blob, {
-          upsert: true,
-          contentType: mimeType
-        });
+      let uploadError: any = null;
+      try {
+        const res = await supabase
+          .storage
+          .from('crmum')
+          .upload(storagePath, (blob as Blob), {
+            upsert: true,
+            contentType: mimeType
+          });
+        uploadError = res.error || null;
+      } catch (e: any) {
+        uploadError = e;
+      }
+      
+      // Fallback nativo en Android: usar Signed Upload + FileSystem.uploadAsync cuando falle por "Network request failed"
+      if (uploadError && Platform.OS !== 'web' && nativePathForUpload) {
+        const msg = String(uploadError?.message || uploadError);
+        if (msg.includes('Network request failed')) {
+          console.warn('[DEBUG] Intentando fallback con Signed Upload URL');
+          const { data: signed, error: signedErr } = await supabase
+            .storage
+            .from('crmum')
+            .createSignedUploadUrl(storagePath);
+          if (signedErr) throw signedErr;
+          const result = await FileSystem.uploadAsync(signed!.signedUrl, nativePathForUpload, {
+            httpMethod: 'PUT',
+            headers: {
+              'Content-Type': mimeType,
+              'x-upsert': 'true',
+            },
+            uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          });
+          if (result.status < 200 || result.status >= 300) {
+            throw new Error(`Signed upload failed: ${result.status}`);
+          }
+          uploadError = null;
+        }
+      }
+      if (uploadError) {
+        throw uploadError;
+      }
       if (onProgress) onProgress(i, 100);
       if (uploadError) {
         console.error(`[DEBUG] Error de subida Supabase:`, uploadError);
@@ -129,6 +222,7 @@ export async function subirArchivosBucket(
         }
         throw uploadError;
       }
+      // Asegurar URL pública (manejo de posibles timings en móvil)
       const { publicUrl } = supabase
         .storage
         .from('crmum')

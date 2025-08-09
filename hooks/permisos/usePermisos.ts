@@ -143,6 +143,31 @@ export const usePermisos = () => {
     return PermisosController.getTablasDisponibles();
   };
 
+  // Nuevos métodos para validar funciones y datos disponibles
+  const getFuncionesDisponibles = () => {
+    return PermisosController.getFuncionesDisponibles();
+  };
+
+  const getDatosDisponibles = () => {
+    return PermisosController.getDatosDisponibles();
+  };
+
+  const validarFuncionDisponible = (funcion: string) => {
+    return PermisosController.validarFuncionDisponible(funcion);
+  };
+
+  const validarDatoDisponible = (dato: string) => {
+    return PermisosController.validarDatoDisponible(dato);
+  };
+
+  const getFuncionesDisponiblesConDescripcion = () => {
+    return PermisosController.getFuncionesDisponiblesConDescripcion();
+  };
+
+  const getDatosDisponiblesConDescripcion = () => {
+    return PermisosController.getDatosDisponiblesConDescripcion();
+  };
+
   const formatTipoPermiso = (tipo: string) => {
     return PermisosController.formatTipoPermiso(tipo);
   };
@@ -179,6 +204,8 @@ export const usePermisos = () => {
     }
   };
 
+
+
   return {
     // Estado
     permisos,
@@ -209,6 +236,12 @@ export const usePermisos = () => {
     getPoliticaById: getPoliticaByIdLocal,
     getTiposPermiso,
     getTablasDisponibles,
+    getFuncionesDisponibles,
+    getDatosDisponibles,
+    validarFuncionDisponible,
+    validarDatoDisponible,
+    getFuncionesDisponiblesConDescripcion,
+    getDatosDisponiblesConDescripcion,
     formatTipoPermiso,
     generatePoliticaRLSExample,
     

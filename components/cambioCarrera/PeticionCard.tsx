@@ -3,6 +3,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/context/AuthContext';
 import { useFirmas } from '@/hooks/cambioCarrera/useFirmas';
 import { PeticionConFirmas } from '@/models/cambioCarrera/firmasModel';
+import { useScreenPermissionsStore } from '@/store/permisos/screenPermissionsStore';
 import React, { useState } from 'react';
 import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import { ModalFirma } from './ModalFirma';
@@ -14,9 +15,12 @@ interface PeticionCardProps {
 
 export const PeticionCard: React.FC<PeticionCardProps> = ({ peticion, vistaActiva }) => {
   const { user } = useAuth();
-  const { firmarPeticion, verificarPuedeFirmar } = useFirmas();
+  const { firmarPeticion, verificarPuedeFirmar, verificarYaFirmo } = useFirmas();
+  const { userRoleInfo } = useScreenPermissionsStore();
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [puedeFirmar, setPuedeFirmar] = useState(false);
+  const [yaFirmo, setYaFirmo] = useState(false);
 
   // Obtener el estado de la petición
   const getEstadoColor = (estado: string) => {
@@ -51,21 +55,25 @@ export const PeticionCard: React.FC<PeticionCardProps> = ({ peticion, vistaActiv
     : 0;
 
   // Verificar si el usuario puede firmar esta petición
-  const [puedeFirmar, setPuedeFirmar] = useState(false);
-  
   React.useEffect(() => {
     const verificarPermisos = async () => {
       if (user?.email) {
         const puede = await verificarPuedeFirmar(peticion.id);
+        const yaFirmoPeticion = await verificarYaFirmo(peticion.id);
         setPuedeFirmar(puede);
+        setYaFirmo(yaFirmoPeticion);
       }
     };
     verificarPermisos();
-  }, [user?.email, peticion.id, verificarPuedeFirmar]);
+  }, [user?.email, peticion.id, verificarPuedeFirmar, verificarYaFirmo]);
 
   const handleFirmar = async (estado: 'aprobada' | 'rechazada', contraseña: string, comentarios?: string) => {
     setLoading(true);
     try {
+      // Si es director, permitir firma para el área "Dirección" si corresponde
+      const normalize = (v?: string) => (v || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+      const isDirector = normalize(userRoleInfo?.rolarea) === 'director';
+
       // Obtener el área del usuario
       const { data: usuario } = await import('@/services/supabase/supaConf').then(({ supabase }) => 
         supabase
@@ -82,6 +90,18 @@ export const PeticionCard: React.FC<PeticionCardProps> = ({ peticion, vistaActiv
           await firmarPeticion(peticion.id, firmaPendiente.area_id, estado, contraseña, comentarios);
         }
       } else {
+        // Si es director y existe una firma del área Dirección pendiente, usarla
+        if (isDirector) {
+          const firmaDireccion = peticion.firmas.find(f => f.area_nombre && normalize(f.area_nombre) === 'direccion' && f.estado === 'pendiente');
+          if (firmaDireccion) {
+            await firmarPeticion(peticion.id, firmaDireccion.area_id, estado, contraseña, comentarios);
+            setModalVisible(false);
+            Alert.alert('Éxito', 'Firma registrada correctamente');
+            setLoading(false);
+            return;
+          }
+        }
+
         await firmarPeticion(peticion.id, usuario.idarea, estado, contraseña, comentarios);
       }
 
@@ -231,22 +251,50 @@ export const PeticionCard: React.FC<PeticionCardProps> = ({ peticion, vistaActiv
         )}
 
         {/* Botones de acción */}
-        {vistaActiva === 'mis-pendientes' && puedeFirmar && peticion.estado === 'pendiente' && (
+        {vistaActiva === 'mis-pendientes' && peticion.estado === 'pendiente' && (
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            <TouchableOpacity
-              onPress={() => setModalVisible(true)}
-              style={{
+            {yaFirmo ? (
+              <View style={{
                 flex: 1,
-                backgroundColor: '#28a745',
+                backgroundColor: '#6c757d',
                 paddingVertical: 12,
                 borderRadius: 8,
                 alignItems: 'center'
-              }}
-            >
-              <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
-                Firmar Petición
-              </Text>
-            </TouchableOpacity>
+              }}>
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                  ✅ Ya firmaste esta petición
+                </Text>
+              </View>
+            ) : puedeFirmar ? (
+              <TouchableOpacity
+                onPress={() => setModalVisible(true)}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#28a745',
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>
+                  Firmar Petición
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{
+                flex: 1,
+                backgroundColor: '#f8f9fa',
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#e9ecef'
+              }}>
+                <Text style={{ color: '#6c757d', fontWeight: '600', fontSize: 14 }}>
+                  ⏳ No puedes firmar esta petición
+                </Text>
+              </View>
+            )}
           </View>
         )}
 

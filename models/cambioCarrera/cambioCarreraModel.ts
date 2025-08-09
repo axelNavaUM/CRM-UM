@@ -6,6 +6,60 @@ export class CambioCarreraModel {
     return await CambioCarreraService.crearPeticion(peticion);
   }
 
+  // Verificar si ya existe una petición duplicada
+  static async verificarPeticionDuplicada(peticion: any): Promise<boolean> {
+    return await CambioCarreraService.verificarPeticionDuplicada(peticion);
+  }
+
+  // Verificar si un alumno tiene trámites pendientes
+  static async verificarTramitesPendientes(alumno_id: number): Promise<{
+    tieneTramitesPendientes: boolean;
+    tramitesPendientes: string[];
+    status: string;
+    documentosFaltantes: string[];
+  }> {
+    return await CambioCarreraService.verificarTramitesPendientes(alumno_id);
+  }
+
+  // Obtener historial de peticiones de cambio de carrera de un alumno
+  static async obtenerHistorialPeticiones(alumno_id: number): Promise<any[]> {
+    return await CambioCarreraService.obtenerHistorialPeticiones(alumno_id);
+  }
+
+  // Obtener peticiones pendientes de un alumno específico
+  static async obtenerPeticionesPendientesAlumno(alumno_id: number): Promise<any[]> {
+    return await CambioCarreraService.obtenerPeticionesPendientesAlumno(alumno_id);
+  }
+
+  // Verificar si un usuario pertenece a Control Escolar
+  static async esControlEscolar(userEmail: string): Promise<boolean> {
+    return await CambioCarreraService.esControlEscolar(userEmail);
+  }
+
+  // Obtener documentos faltantes de un alumno
+  static async obtenerDocumentosFaltantes(alumno_id: number): Promise<{
+    documentosFaltantes: string[];
+    documentosSubidos: string[];
+    documentosInfo: any[];
+  }> {
+    return await CambioCarreraService.obtenerDocumentosFaltantes(alumno_id);
+  }
+
+  // Agregar documento faltante (solo Control Escolar)
+  static async agregarDocumentoFaltante(
+    alumno_id: number,
+    tipo_documento: string,
+    url_archivo: string,
+    userEmail: string
+  ): Promise<boolean> {
+    return await CambioCarreraService.agregarDocumentoFaltante(alumno_id, tipo_documento, url_archivo, userEmail);
+  }
+
+  // Actualizar status del alumno cuando todos los documentos estén completos
+  static async actualizarStatusAlumno(alumno_id: number): Promise<boolean> {
+    return await CambioCarreraService.actualizarStatusAlumno(alumno_id);
+  }
+
   // Obtener peticiones por asesor
   static async getPeticionesPorAsesor(asesor_id: number): Promise<any[]> {
     return await CambioCarreraService.getPeticionesPorAsesor(asesor_id);

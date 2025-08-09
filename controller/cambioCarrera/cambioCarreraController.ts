@@ -41,11 +41,98 @@ export class CambioCarreraController {
       throw new Error('El nuevo ciclo especificado no existe');
     }
 
+    console.log('🔍 Controller: Verificando peticiones duplicadas...');
+    // Verificar que no existe una petición duplicada
+    const existeDuplicada = await CambioCarreraModel.verificarPeticionDuplicada(peticion);
+    if (existeDuplicada) {
+      console.log('❌ Controller: Petición duplicada detectada');
+      throw new Error('Ya existe una petición similar para este alumno. No se pueden crear peticiones duplicadas.');
+    }
+
+    console.log('🔍 Controller: Verificando trámites pendientes...');
+    // Verificar que el alumno no tiene trámites pendientes
+    const { tieneTramitesPendientes, tramitesPendientes } = await CambioCarreraModel.verificarTramitesPendientes(peticion.alumno_id);
+    if (tieneTramitesPendientes) {
+      console.log('❌ Controller: Alumno tiene trámites pendientes');
+      throw new Error(`No se puede crear la petición. El alumno tiene trámites pendientes: ${tramitesPendientes.join(', ')}`);
+    }
+
     console.log('✅ Controller: Todas las validaciones pasaron, creando petición...');
-    // Crear la petición
     const resultado = await CambioCarreraModel.crearPeticion(peticion);
-    console.log('✅ Controller: Petición creada exitosamente:', resultado);
+    console.log('✅ Controller: Petición creada exitosamente');
     return resultado;
+  }
+
+  // Verificar si un usuario pertenece a Control Escolar
+  static async esControlEscolar(userEmail: string): Promise<boolean> {
+    console.log('🔍 Controller: Verificando si es Control Escolar para usuario:', userEmail);
+    const resultado = await CambioCarreraModel.esControlEscolar(userEmail);
+    console.log('📋 Controller: Resultado verificación Control Escolar:', resultado);
+    return resultado;
+  }
+
+  // Obtener documentos faltantes de un alumno
+  static async obtenerDocumentosFaltantes(alumno_id: number): Promise<{
+    documentosFaltantes: string[];
+    documentosSubidos: string[];
+    documentosInfo: any[];
+  }> {
+    console.log('🔍 Controller: Obteniendo documentos faltantes para alumno:', alumno_id);
+    const resultado = await CambioCarreraModel.obtenerDocumentosFaltantes(alumno_id);
+    console.log('📋 Controller: Documentos faltantes obtenidos:', resultado);
+    return resultado;
+  }
+
+  // Agregar documento faltante (solo Control Escolar)
+  static async agregarDocumentoFaltante(
+    alumno_id: number,
+    tipo_documento: string,
+    url_archivo: string,
+    userEmail: string
+  ): Promise<boolean> {
+    console.log('🔍 Controller: Agregando documento faltante...');
+    console.log('📋 Controller: Datos - Alumno:', alumno_id, 'Tipo:', tipo_documento, 'Usuario:', userEmail);
+    
+    const resultado = await CambioCarreraModel.agregarDocumentoFaltante(alumno_id, tipo_documento, url_archivo, userEmail);
+    console.log('✅ Controller: Documento agregado exitosamente');
+    return resultado;
+  }
+
+  // Actualizar status del alumno cuando todos los documentos estén completos
+  static async actualizarStatusAlumno(alumno_id: number): Promise<boolean> {
+    console.log('🔍 Controller: Actualizando status del alumno:', alumno_id);
+    const resultado = await CambioCarreraModel.actualizarStatusAlumno(alumno_id);
+    console.log('📋 Controller: Resultado actualización status:', resultado);
+    return resultado;
+  }
+
+  // Verificar si un alumno tiene trámites pendientes
+  static async verificarTramitesPendientes(alumno_id: number): Promise<{
+    tieneTramitesPendientes: boolean;
+    tramitesPendientes: string[];
+    status: string;
+    documentosFaltantes: string[];
+  }> {
+    console.log('🔍 Controller: Verificando trámites pendientes para alumno:', alumno_id);
+    const resultado = await CambioCarreraModel.verificarTramitesPendientes(alumno_id);
+    console.log('📋 Controller: Resultado verificación trámites:', resultado);
+    return resultado;
+  }
+
+  // Obtener historial de peticiones de cambio de carrera de un alumno
+  static async obtenerHistorialPeticiones(alumno_id: number): Promise<any[]> {
+    console.log('🔍 Controller: Obteniendo historial de peticiones para alumno:', alumno_id);
+    const historial = await CambioCarreraModel.obtenerHistorialPeticiones(alumno_id);
+    console.log('📋 Controller: Historial obtenido:', historial.length, 'peticiones');
+    return historial;
+  }
+
+  // Obtener peticiones pendientes de un alumno específico
+  static async obtenerPeticionesPendientesAlumno(alumno_id: number): Promise<any[]> {
+    console.log('🔍 Controller: Obteniendo peticiones pendientes para alumno:', alumno_id);
+    const peticiones = await CambioCarreraModel.obtenerPeticionesPendientesAlumno(alumno_id);
+    console.log('📋 Controller: Peticiones pendientes obtenidas:', peticiones.length);
+    return peticiones;
   }
 
   // Obtener peticiones por asesor

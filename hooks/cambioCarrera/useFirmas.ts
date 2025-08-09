@@ -5,7 +5,8 @@ import {
     obtenerPeticionesConFirmas,
     obtenerPeticionesPendientesFirma,
     PeticionConFirmas,
-    puedeFirmarPeticion
+    puedeFirmarPeticion,
+    yaFirmoPeticion
 } from '@/models/cambioCarrera/firmasModel';
 import { useCallback, useState } from 'react';
 
@@ -64,6 +65,12 @@ export const useFirmas = () => {
     }
 
     try {
+      // Verificar si el usuario ya firmó esta petición
+      const yaFirmo = await yaFirmoPeticion(user.email, peticionId);
+      if (yaFirmo) {
+        throw new Error('Ya has firmado esta petición anteriormente');
+      }
+
       // Obtener el ID del usuario
       const { data: usuario } = await import('@/services/supabase/supaConf').then(({ supabase }) => 
         supabase
@@ -106,6 +113,18 @@ export const useFirmas = () => {
       return await puedeFirmarPeticion(user.email, peticionId);
     } catch (err) {
       console.error('Error al verificar si puede firmar:', err);
+      return false;
+    }
+  }, [user?.email]);
+
+  // Verificar si el usuario ya firmó una petición específica
+  const verificarYaFirmo = useCallback(async (peticionId: number): Promise<boolean> => {
+    if (!user?.email) return false;
+    
+    try {
+      return await yaFirmoPeticion(user.email, peticionId);
+    } catch (err) {
+      console.error('Error al verificar si ya firmó:', err);
       return false;
     }
   }, [user?.email]);
@@ -159,6 +178,7 @@ export const useFirmas = () => {
     cargarPeticionesPendientes,
     firmarPeticion: firmarPeticionHandler,
     verificarPuedeFirmar,
+    verificarYaFirmo,
     
     // Utilidades
     obtenerEstadisticas,

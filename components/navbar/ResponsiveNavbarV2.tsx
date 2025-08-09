@@ -1,53 +1,16 @@
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import NavigationItems from '@/components/navbar/NavigationItems';
+import RadixIcons from '@/components/ui/RadixIcons';
+import { useLogout } from '@/hooks/auth/useLogout';
 import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-
-interface NavItem {
-  name: string;
-  title: string;
-  icon: string;
-  route: string;
-}
-
-const navigationItems: NavItem[] = [
-  {
-    name: 'home',
-    title: 'Inicio',
-    icon: 'house.fill',
-    route: '/'
-  },
-  {
-    name: 'explore',
-    title: 'Actividades',
-    icon: 'chart.bar.fill',
-    route: '/explore'
-  },
-  {
-    name: 'gestionPeticiones',
-    title: 'Gestión Peticiones',
-    icon: 'doc.text.fill',
-    route: '/gestionPeticiones'
-  },
-  {
-    name: 'altaAlumno',
-    title: 'Alta Alumnos',
-    icon: 'person.badge.plus.fill',
-    route: '/altaAlumno'
-  },
-  {
-    name: 'altaUsuario',
-    title: 'Alta Usuarios',
-    icon: 'person.2.fill',
-    route: '/altaUsuario'
-  }
-];
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 export default function ResponsiveNavbarV2() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const pathname = usePathname();
   const isMobile = width < 768;
+  const { logout } = useLogout();
 
   const getActiveRoute = () => {
     if (pathname === '/') return 'home';
@@ -68,28 +31,37 @@ export default function ResponsiveNavbarV2() {
     router.back();
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
+
   // Mobile Navigation (Bottom) - Estilo específico para móvil
   if (isMobile) {
     return (
       <View style={styles.mobileContainer}>
         <View style={styles.mobileNavContainer}>
           <View style={styles.mobileNavButtons}>
-            {navigationItems.map((item) => (
-              <TouchableOpacity
-                key={item.name}
-                style={[
-                  styles.mobileNavButton,
-                  activeTab === item.name && styles.mobileNavButtonActive
-                ]}
-                onPress={() => handleNavigation(item.route)}
-              >
-                <IconSymbol
-                  size={24}
-                  name={(activeTab === item.name ? item.icon : item.icon.replace('.fill', '')) as any}
-                  color={activeTab === item.name ? '#FFFFFF' : '#666666'}
-                />
-              </TouchableOpacity>
-            ))}
+            <NavigationItems 
+              activeTab={activeTab}
+              onNavigation={handleNavigation}
+              isMobile={true}
+            />
+            
+            {/* Botón de Logout */}
+            <TouchableOpacity
+              style={styles.mobileLogoutButton}
+              onPress={handleLogout}
+            >
+              <RadixIcons.Logout
+                size={24}
+                color="#EF4444"
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -101,36 +73,32 @@ export default function ResponsiveNavbarV2() {
     <View style={styles.desktopContainer}>
       {/* Logo */}
       <View style={styles.desktopLogo}>
-        <View style={styles.logoIcon}>
-          <IconSymbol name="app.fill" size={24} color="#FF6B35" />
-        </View>
+        <Image source={require('@/assets/images/icon.png')} style={{ width: 40, height: 40, borderRadius: 8 }} />
         <Text style={styles.desktopLogoText}>Universidad</Text>
       </View>
 
       {/* Back Button */}
       <TouchableOpacity style={styles.desktopBackButton} onPress={handleBack}>
-        <IconSymbol name="chevron.left" size={20} color="#666666" />
+        <RadixIcons.ChevronLeft size={20} color="#666666" />
       </TouchableOpacity>
 
       {/* Navigation Items - Centered */}
-      <View style={styles.desktopNavItems}>
-        {navigationItems.map((item) => (
-          <TouchableOpacity
-            key={item.name}
-            style={[
-              styles.desktopNavButton,
-              activeTab === item.name && styles.desktopNavButtonActive
-            ]}
-            onPress={() => handleNavigation(item.route)}
-          >
-            <IconSymbol
-              size={22}
-              name={(activeTab === item.name ? item.icon : item.icon.replace('.fill', '')) as any}
-              color={activeTab === item.name ? '#FF6B35' : '#666666'}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
+      <NavigationItems 
+        activeTab={activeTab}
+        onNavigation={handleNavigation}
+        isMobile={false}
+      />
+      
+      {/* Botón de Logout */}
+      <TouchableOpacity
+        style={styles.desktopLogoutButton}
+        onPress={handleLogout}
+      >
+        <RadixIcons.Logout
+          size={22}
+          color="#EF4444"
+        />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -185,6 +153,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+  },
+  mobileLogoutButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
 
   // ===== ESTILOS ESPECÍFICOS PARA WEB/DESKTOP =====
@@ -256,6 +234,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+  },
+  desktopLogoutButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginTop: 'auto',
   },
   logoIcon: {
     width: 40,

@@ -229,6 +229,46 @@ export const obtenerPeticionesPendientesFirma = async (userEmail: string): Promi
   }
 };
 
+// Verificar si un usuario ya firmó una petición
+export const yaFirmoPeticion = async (userEmail: string, peticionId: number): Promise<boolean> => {
+  try {
+    const { data: usuario } = await supabase
+      .from('usuariosum')
+      .select('idarea, idusuario')
+      .eq('correoinstitucional', userEmail)
+      .single();
+
+    if (!usuario) return false;
+
+    // SuperSU y admin pueden firmar cualquier cosa, pero no pueden firmar múltiples veces
+    if (!usuario.idarea) {
+      // Verificar si ya firmó cualquier firma de esta petición
+      const { data: firmaExistente } = await supabase
+        .from('firmas_cambio_carrera')
+        .select('id')
+        .eq('peticion_id', peticionId)
+        .eq('usuario_firmante_id', usuario.idusuario)
+        .single();
+
+      return !!firmaExistente;
+    }
+
+    // Verificar si el usuario ya firmó la firma de su área para esta petición
+    const { data: firmaExistente } = await supabase
+      .from('firmas_cambio_carrera')
+      .select('id')
+      .eq('peticion_id', peticionId)
+      .eq('area_id', usuario.idarea)
+      .eq('usuario_firmante_id', usuario.idusuario)
+      .single();
+
+    return !!firmaExistente;
+  } catch (error) {
+    console.error('Error al verificar si ya firmó:', error);
+    return false;
+  }
+};
+
 // Firmar una petición
 export const firmarPeticion = async (
   peticionId: number,
@@ -239,6 +279,26 @@ export const firmarPeticion = async (
   comentarios?: string
 ): Promise<boolean> => {
   try {
+    // Verificar si ya existe una firma para esta petición y área
+    const { data: firmaExistente } = await supabase
+      .from('firmas_cambio_carrera')
+      .select('id, estado, usuario_firmante_id')
+      .eq('peticion_id', peticionId)
+      .eq('area_id', areaId)
+      .single();
+
+    if (firmaExistente) {
+      // Si ya hay una firma y no está pendiente, no permitir modificar
+      if (firmaExistente.estado !== 'pendiente') {
+        throw new Error('Esta petición ya ha sido firmada y no puede ser modificada');
+      }
+
+      // Si ya hay un usuario_firmante_id, verificar que no sea el mismo usuario
+      if (firmaExistente.usuario_firmante_id && firmaExistente.usuario_firmante_id !== usuarioId) {
+        throw new Error('Esta petición ya está siendo procesada por otro usuario');
+      }
+    }
+
     const { error } = await supabase
       .from('firmas_cambio_carrera')
       .update({
@@ -290,6 +350,10 @@ export const puedeFirmarPeticion = async (userEmail: string, peticionId: number)
       .single();
 
     if (!usuario) return false;
+
+    // Verificar si ya firmó esta petición
+    const yaFirmo = await yaFirmoPeticion(userEmail, peticionId);
+    if (yaFirmo) return false;
 
     // SuperSU y admin pueden firmar cualquier cosa
     if (!usuario.idarea) return true;

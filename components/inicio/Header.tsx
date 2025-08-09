@@ -1,50 +1,47 @@
-import { NotificationsPanel } from '@/components/notifications/NotificationsPanel';
+import AsidePanel from '@/components/ui/AsidePanel';
+import NotificationsAsideContent from '@/components/ui/NotificationsAsideContent';
+import RadixIcons from '@/components/ui/RadixIcons';
+import ResponsiveNotifications from '@/components/ui/ResponsiveNotifications';
 import { useAuth } from '@/context/AuthContext';
+import { useSearch } from '@/context/SearchContext';
+import { useWeb } from '@/context/WebContext';
 import { useLogout } from '@/hooks/auth/useLogout';
 import { useCambioCarrera } from '@/hooks/cambioCarrera/useCambioCarrera';
+import { useScreenPermissions } from '@/hooks/permisos/useScreenPermissions';
 import { useUsuarioStore } from '@/store/usuario/usuario';
 import React, { useState } from 'react';
 import {
-  Alert,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions
+    Alert,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    useWindowDimensions
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-const NAV_ITEMS = [
-  { icon: 'view-grid', label: 'Inicio' },
-  { icon: 'fire', label: 'Actividades' },
-  { icon: 'heart', label: 'Alta' },
-  { icon: 'calendar', label: 'Cambio de Carrera' },
-];
 
 interface HeaderProps {
   darkMode: boolean;
 }
 
-interface NavTabProps {
-  icon: string;
-  label: string;
-  active: boolean;
-}
-
 const Header: React.FC<HeaderProps> = ({ darkMode }) => {
-  const [menuVisible, setMenuVisible] = useState(false);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [showNotificationsDetail, setShowNotificationsDetail] = useState(false);
+  
+
   const { width } = useWindowDimensions();
-  const isMobile = width < 600;
+  const isMobile = width < 768;
   const { user } = useAuth();
   const { notificacionesNoLeidas } = useCambioCarrera(user);
   const { setUsuario } = useUsuarioStore();
   const { logout } = useLogout();
+  const { isSearchVisible, openSearch } = useSearch();
+  const { openNotifications, openSearch: openWebSearch } = useWeb();
+  const { canAccessFeature } = useScreenPermissions();
 
   // Función para obtener las iniciales del usuario
   const getUserInitials = () => {
@@ -68,89 +65,66 @@ const Header: React.FC<HeaderProps> = ({ darkMode }) => {
     setProfileMenuVisible(false);
   };
 
+  // Función para manejar notificaciones
+  const handleNotificationsPress = () => {
+    if (Platform.OS === 'web') {
+      // Abrir notificaciones usando el mismo patrón que explore.tsx
+      setShowNotificationsDetail(true);
+    } else {
+      setNotificationsVisible(true);
+    }
+  };
+
+  const handleCloseNotificationsDetail = () => {
+    setShowNotificationsDetail(false);
+  };
+
+  // Función para manejar búsqueda
+  const handleSearchPress = () => {
+    if (Platform.OS === 'web') {
+      openWebSearch();
+    } else {
+      openSearch();
+    }
+  };
+
+  // Verificar permisos para mostrar botones
+  const canAccessSearch = canAccessFeature('search');
+  const canAccessNotifications = canAccessFeature('notifications');
+
   return (
     <View style={[styles.container, isMobile && styles.containerMobile]}>
-      {/* NAVIGATION TABS O MENÚ */}
-      {isMobile ? (
-        <>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => setMenuVisible(true)}
+
+
+                                         {/* SEARCH BUTTON - Con icono de RadixIcons */}
+        {canAccessSearch && (
+          <TouchableOpacity 
+            style={[styles.iconButton, { backgroundColor: '#f0f0f0', borderRadius: 8, padding: 8 }]}
+            onPress={handleSearchPress}
           >
-            <Icon name="menu" size={20} color="#fff" />
-            <Text style={styles.menuButtonText}>Menú</Text>
+            <RadixIcons.Search size={24} color="#000000" />
           </TouchableOpacity>
+        )}
 
-          <Modal
-            transparent
-            animationType="fade"
-            visible={menuVisible}
-            onRequestClose={() => setMenuVisible(false)}
-          >
-            <TouchableOpacity
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPressOut={() => setMenuVisible(false)}
-            >
-              <View style={styles.modalMenu}>
-                {NAV_ITEMS.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.modalItem}
-                    onPress={() => {
-                      setMenuVisible(false);
-                      // manejar navegación aquí si usas react-navigation
-                    }}
-                  >
-                    <Icon name={item.icon} size={18} color="#fff" />
-                    <Text style={styles.modalItemText}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </>
-      ) : (
-        <View style={styles.tabsContainer}>
-          {NAV_ITEMS.map((item, index) => (
-            <NavTab
-              key={index}
-              icon={item.icon}
-              label={item.label}
-              active={index === 0}
-            />
-          ))}
-        </View>
-      )}
-
-      {/* RIGHT SIDE */}
-      <View style={styles.rightContainer}>
-        {/* Toggle */}
-        <View style={styles.themeToggle}>
-          <Icon name="white-balance-sunny" size={16} color="#fff" />
-          <View style={styles.toggleCircle}>
-            <Icon
-              name={darkMode ? 'moon-waning-crescent' : 'white-balance-sunny'}
-              size={16}
-              color="#000"
-            />
-          </View>
-        </View>
+       {/* RIGHT SIDE */}
+       <View style={styles.rightContainer}>
 
         {/* Notification */}
-        <TouchableOpacity 
-          style={styles.iconButton}
-          onPress={() => setNotificationsVisible(true)}
-        >
-          <Icon name="bell" size={24} color="#000000" />
-          {notificacionesNoLeidas > 0 && (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.badgeText}>
-                {notificacionesNoLeidas > 99 ? '99+' : notificacionesNoLeidas}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {canAccessNotifications && (
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={handleNotificationsPress}
+          >
+            <RadixIcons.Bell size={24} color="#000000" />
+            {notificacionesNoLeidas > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>
+                  {notificacionesNoLeidas > 99 ? '99+' : notificacionesNoLeidas}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* Avatar con iniciales */}
         <View style={styles.profileContainer}>
@@ -186,7 +160,7 @@ const Header: React.FC<HeaderProps> = ({ darkMode }) => {
               style={styles.profileMenuItem}
               onPress={handleConfig}
             >
-              <Icon name="cog" size={16} color="#374151" />
+              <RadixIcons.Settings size={16} color="#374151" />
               <Text style={styles.profileMenuItemText}>Config</Text>
             </TouchableOpacity>
             
@@ -207,7 +181,7 @@ const Header: React.FC<HeaderProps> = ({ darkMode }) => {
               }}
               disabled={isLoggingOut}
             >
-              <Icon name="logout" size={16} color="#EF4444" />
+              <RadixIcons.Logout size={16} color="#EF4444" />
               <Text style={[styles.profileMenuItemText, styles.logoutText]}>
                 {isLoggingOut ? 'Cerrando...' : 'Logout'}
               </Text>
@@ -216,18 +190,14 @@ const Header: React.FC<HeaderProps> = ({ darkMode }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal de Notificaciones */}
-      <Modal
-        visible={notificationsVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setNotificationsVisible(false)}
-      >
-        <NotificationsPanel
+      {/* Componente de Notificaciones Responsivo - Solo para móvil */}
+      {Platform.OS !== 'web' && (
+        <ResponsiveNotifications
+          visible={notificationsVisible}
           onClose={() => setNotificationsVisible(false)}
-          onNotificationPress={(notificacion) => setSelectedNotification(notificacion)}
+          onNotificationPress={(notificacion: any) => setSelectedNotification(notificacion)}
         />
-      </Modal>
+      )}
 
       {/* Modal para detalle de notificación */}
       <Modal
@@ -249,16 +219,21 @@ const Header: React.FC<HeaderProps> = ({ darkMode }) => {
           </TouchableOpacity>
         </View>
       </Modal>
+
+      {/* AsidePanel para notificaciones en web */}
+      {Platform.OS === 'web' && (
+        <AsidePanel 
+          open={showNotificationsDetail} 
+          onClose={handleCloseNotificationsDetail}
+        >
+          <NotificationsAsideContent onClose={handleCloseNotificationsDetail} />
+        </AsidePanel>
+      )}
     </View>
   );
 };
 
-const NavTab: React.FC<NavTabProps> = ({ icon, label, active }) => (
-  <TouchableOpacity style={[styles.tab, active && styles.activeTab]}>
-    <Icon name={icon} size={16} color={active ? '#000' : '#fff'} />
-    <Text style={[styles.tabLabel, active && styles.activeLabel]}>{label}</Text>
-  </TouchableOpacity>
-);
+
 
 const styles = StyleSheet.create({
   container: {
@@ -267,6 +242,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    position: 'relative',
+    zIndex: 999,
   },
   containerMobile: {
     paddingTop: Platform.OS === 'ios' ? 50 : 30, // Espacio para la barra de notificaciones
@@ -276,49 +253,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e7edf3',
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1e1e1e',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
-  activeTab: {
-    backgroundColor: '#fff',
-  },
-  tabLabel: {
-    color: '#fff',
-    marginLeft: 6,
-    fontSize: 13,
-  },
-  activeLabel: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
+
+
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
   },
-  themeToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1e1e1e',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    gap: 6,
-  },
-  toggleCircle: {
-    backgroundColor: '#fff',
-    padding: 4,
-    borderRadius: 12,
-  },
+
   iconButton: {
     position: 'relative',
   },
@@ -403,40 +345,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 999,
   },
-  menuButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1e1e1e',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-  },
-  menuButtonText: {
-    color: '#fff',
-    marginLeft: 6,
-    fontSize: 13,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  modalMenu: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 10,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 10,
-  },
-  modalItemText: {
-    color: '#fff',
-    fontSize: 14,
-  },
+
   avatarButton: {
     // Estilos para hacer el área de toque más visible
     padding: 8,

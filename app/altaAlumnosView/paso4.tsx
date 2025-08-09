@@ -31,6 +31,7 @@ const Paso4Contrato: React.FC<Paso4ContratoProps> = ({ contrato, contratoAceptad
         onChangeText={v => setContratoAceptado(!!v)}
       />
       <PrimaryButton label="Finalizar registro" disabled={!contratoAceptado || loading} onPress={onFinalizar} />
+      {loading && <Text style={{ marginTop: 8, color: '#6B7280' }}>Subiendo documentos, por favor espera...</Text>}
       <PrimaryButton label="Atrás" onPress={onAtras} />
       {error ? <Text style={{ color: 'red' }}>{error}</Text> : null}
       {success ? <Text style={{ color: 'green' }}>{success}</Text> : null}

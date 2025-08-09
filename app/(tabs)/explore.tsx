@@ -1,16 +1,24 @@
+import { CareerChangePetitionsSection } from '@/app/exploreScreen/vista1/CareerChangePetitionsSection';
+import { SystemLogsSection } from '@/app/exploreScreen/vista2/SystemLogsSection';
+import { StudentsByGroupsSection } from '@/app/exploreScreen/vista3/StudentsByGroupsSection';
+import { StudentsWithMissingDocumentsSection } from '@/app/exploreScreen/vista4/StudentsWithMissingDocumentsSection';
+import { StudentsWithPendingPaymentsSection } from '@/app/exploreScreen/vista5/StudentsWithPendingPaymentsSection';
+import { SalesMetricsSection } from '@/app/exploreScreen/vista6/SalesMetricsSection';
+import { AsesorStudentsSection } from '@/app/exploreScreen/vista7/AsesorStudentsSection';
 import AlumnoDetail from '@/components/alumnos/AlumnoDetail';
-import AlumnosGrid from '@/components/alumnos/AlumnosGrid';
 import Button from '@/components/inicio/Button';
 import Card from '@/components/inicio/Card';
-import RecentActivitiesTable from '@/components/inicio/RecentActivitiesTable';
 import AsidePanel from '@/components/ui/AsidePanel';
 import BottomSheet from '@/components/ui/BottomSheet';
+import MobileNativeHeaderActions from '@/components/ui/MobileNativeHeaderActions';
+import { ScreenAccessControl } from '@/components/ui/ScreenAccessControl';
 import { useAuth } from '@/context/AuthContext';
-import { Alumno, RegistroAlumnoModel } from '@/models/registroAlumnoModel';
-import { supabase } from '@/services/supabase/supaConf';
+import { useRoleBasedContent } from '@/hooks/permisos/useRoleBasedContent';
+import { Alumno } from '@/models/registroAlumnoModel';
 import { styles } from '@/style/inicio2';
-import React, { useEffect, useState } from 'react';
-import { FlatList, Text, View, useWindowDimensions } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { FlatList, Text, useWindowDimensions, View } from 'react-native';
 
 interface ListItem {
   id: string;
@@ -18,103 +26,24 @@ interface ListItem {
   activities?: any[];
 }
 
-const App = () => {
+const ExploreContent = () => {
   const { user } = useAuth();
-  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
-  const [total, setTotal] = useState(0);
-  const [pendientes, setPendientes] = useState(0);
-  const [rol, setRol] = useState<string>('lector');
+  const { content, metrics, isLoading: roleLoading } = useRoleBasedContent();
   const [selectedAlumno, setSelectedAlumno] = useState<Alumno | null>(null);
   const [showAlumnoDetail, setShowAlumnoDetail] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const router = useRouter();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      let userRol = 'lector';
-      let asesor_id = null;
-      try {
-        let usuario = null;
-        if (user?.email) {
-          // Buscar en usuariosum el rol y el id
-          const { data: usuarioData, error: usuarioError } = await supabase
-            .from('usuariosum')
-            .select('idusuario, idarea')
-            .eq('correoinstitucional', user.email)
-            .single();
-          usuario = usuarioData;
-          if (!usuarioError && usuario) {
-            asesor_id = usuario.idusuario;
-            // Buscar el rol en areas
-            if (usuario.idarea) {
-              const { data: area, error: areaError } = await supabase
-                .from('areas')
-                .select('rolarea')
-                .eq('idarea', usuario.idarea)
-                .single();
-              if (!areaError && area) {
-                userRol = area.rolarea || 'asesor';
-              } else {
-                userRol = 'asesor';
-              }
-            } else {
-              userRol = 'asesor';
-            }
-          } else {
-            userRol = 'lector';
-          }
-        } else {
-          setError('No hay usuario autenticado.');
-          setAlumnos([]);
-          setTotal(0);
-          setPendientes(0);
-          setIsLoading(false);
-          return;
-        }
-        setRol(userRol);
-        if (userRol === 'jefe de ventas') {
-          // Jefe de ventas ve todos los pendientes
-          const pendientesList = await RegistroAlumnoModel.getAlumnosPorStatus('pendiente');
-          setAlumnos(pendientesList);
-          setTotal(pendientesList.length);
-          setPendientes(pendientesList.length);
-        } else if (userRol === 'asesor' && asesor_id) {
-          // Asesor ve solo sus alumnos
-          const misAlumnos = await RegistroAlumnoModel.getAlumnosPorAsesor(asesor_id);
-          setAlumnos(misAlumnos);
-          setTotal(misAlumnos.length);
-          setPendientes(misAlumnos.filter(a => a.status === 'pendiente').length);
-        } else {
-          // Lector: puede ver todos los alumnos
-          const { data: allAlumnos, error: alumnosError } = await supabase
-            .from('alumnos')
-            .select('*');
-          if (alumnosError) {
-            setError('Error al obtener alumnos: ' + alumnosError.message);
-            setAlumnos([]);
-            setTotal(0);
-            setPendientes(0);
-          } else {
-            setAlumnos(allAlumnos || []);
-            setTotal((allAlumnos || []).length);
-            setPendientes((allAlumnos || []).filter(a => a.status === 'pendiente').length);
-          }
-        }
-      } catch (err: any) {
-        setError('Error al cargar los registros: ' + (err.message || err.toString()));
-        setAlumnos([]);
-        setTotal(0);
-        setPendientes(0);
-      }
-      setIsLoading(false);
-    };
-    fetchData();
-  }, [user]);
+  const RightActions = () => <MobileNativeHeaderActions />;
+
+  console.log('[DEBUG] ExploreContent - user:', user);
+  console.log('[DEBUG] ExploreContent - content:', content);
+  console.log('[DEBUG] ExploreContent - roleLoading:', roleLoading);
+
+  // Removed old role detection logic - now using useRoleBasedContent hook
+  // The role-based content components will handle their own data fetching
 
   const handleAlumnoPress = (alumno: Alumno) => {
     setSelectedAlumno(alumno);
@@ -126,72 +55,143 @@ const App = () => {
     setSelectedAlumno(null);
   };
 
-  // Adaptar datos para la tabla
-  const activities = alumnos.map(a => ({
-    id: a.id?.toString() || '',
-    activity: a.status === 'pendiente' ? 'Registro Pendiente' : 'Registrado',
-    date: a.fecha_alta ? a.fecha_alta.split('T')[0] : '',
-    details: `${a.nombre} ${a.apellidos} - ${(a.email || a.id || '')}`,
-  }));
+  // Adaptar datos para la tabla - ahora manejado por los componentes específicos
+  const activities: any[] = [];
 
-  // Datos para FlatList
-  const listData: ListItem[] = [
-    { id: 'header', type: 'header' },
-    { id: 'cards', type: 'cards' },
-    { id: 'buttons', type: 'buttons' },
-    { id: 'grid', type: 'grid' },
-    { id: 'table', type: 'table', activities }
-  ];
-
-  const renderItem = ({ item }: { item: ListItem }) => {
-    switch (item.type) {
-      case 'header':
-        return (
-          <View style={[styles.content, isMobile && styles.contentMobile]}>
-            <Card title="Registros Creados / Total" value={total.toString()} />
-            <Card title="Tareas Pendientes" value={pendientes.toString()} />
-          </View>
-        );
-      case 'buttons':
-        // Solo mostrar botones si el usuario es asesor o jefe de ventas
-        if (rol === 'asesor' || rol === 'jefe de ventas') {
-          return (
-            <View style={[styles.content, isMobile && styles.contentMobile]}>
-              <Button title="Alta de Estudiante" onPress={() => {}} bgColor="#1383eb" textColor="#fff" />
-              <Button title="Cambio de carrera" onPress={() => {}} bgColor="#e7edf3" textColor="#0d151b" />
-            </View>
-          );
-        }
-        return null;
-      case 'grid':
-        return (
-          <View style={[styles.content, isMobile && styles.contentMobile]}>
-            {error ? (
-              <View style={{ padding: 24, alignItems: 'center' }}>
-                <Text style={{ color: '#DC2626', fontSize: 16, textAlign: 'center' }}>{error}</Text>
-              </View>
-            ) : (
-              <AlumnosGrid 
-                alumnos={alumnos} 
-                onAlumnoPress={handleAlumnoPress}
-                isLoading={isLoading}
-              />
-            )}
-          </View>
-        );
-      case 'table':
-        return (
-          <View style={[styles.content, isMobile && styles.contentMobile]}>
-            <RecentActivitiesTable activities={item.activities} />
-          </View>
-        );
-      default:
-        return null;
+  // Renderizar contenido basado en el rol del usuario
+  const renderRoleBasedContent = () => {
+    console.log('[DEBUG] renderRoleBasedContent - roleLoading:', roleLoading);
+    console.log('[DEBUG] renderRoleBasedContent - content:', content);
+    
+    if (roleLoading) {
+      console.log('[DEBUG] Mostrando loading...');
+      return (
+        <View style={[styles.content, isMobile && styles.contentMobile, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={{ fontSize: 16, color: '#6B7280' }}>Cargando contenido...</Text>
+        </View>
+      );
     }
+
+    // Contenido para Asesor (nueva vista)
+    if (content.showAsesorStudents) {
+      console.log('[DEBUG] Renderizando AsesorStudentsSection');
+      return <AsesorStudentsSection userRole={content.role} />;
+    }
+
+    // Contenido para Asesor del área Ventas
+    if (content.showCareerChangePetitions) {
+      console.log('[DEBUG] Renderizando CareerChangePetitionsSection');
+      return <CareerChangePetitionsSection userRole={content.role} />;
+    }
+
+    // Contenido para Super SU y Administrador
+    if (content.showLogs) {
+      console.log('[DEBUG] Renderizando SystemLogsSection');
+      return <SystemLogsSection userRole={content.role} />;
+    }
+
+    // Contenido para Coordinador
+    if (content.showStudentsByGroups) {
+      console.log('[DEBUG] Renderizando StudentsByGroupsSection');
+      return <StudentsByGroupsSection userRole={content.role} />;
+    }
+
+    // Contenido para Control Escolar
+    if (content.showStudentsWithMissingDocuments) {
+      console.log('[DEBUG] Renderizando StudentsWithMissingDocumentsSection');
+      return <StudentsWithMissingDocumentsSection userRole={content.role} />;
+    }
+
+    // Contenido para Caja
+    if (content.showStudentsWithPendingPayments) {
+      console.log('[DEBUG] Renderizando StudentsWithPendingPaymentsSection');
+      return <StudentsWithPendingPaymentsSection userRole={content.role} />;
+    }
+
+    // Contenido para Jefe de Ventas (incluye métricas + contenido por defecto)
+    if (content.showMetrics) {
+      console.log('[DEBUG] Renderizando SalesMetricsSection');
+      return (
+        <View style={{ flex: 1 }}>
+          <SalesMetricsSection userRole={content.role} metrics={metrics} />
+          {content.showDefaultContent && (
+            <View style={{ borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+              {renderDefaultContent()}
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    // Contenido por defecto para Asesor y otros roles
+    if (content.showDefaultContent) {
+      console.log('[DEBUG] Renderizando contenido por defecto');
+      return renderDefaultContent();
+    }
+    console.log('[DEBUG] No se cumplió ninguna condición, mostrando mensaje de error');
+    return (
+      <View style={[styles.content, isMobile && styles.contentMobile, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 16, color: '#6B7280' }}>No hay contenido disponible para tu rol</Text>
+      </View>
+    );
   };
 
-  return (
-    <View style={[styles.container, isMobile && styles.containerMobile, { backgroundColor: '#FFFFFF' }]}>      
+  const renderDefaultContent = () => {
+    // Datos para FlatList
+    const listData: ListItem[] = [
+      { id: 'header', type: 'header' },
+      { id: 'cards', type: 'cards' },
+      { id: 'buttons', type: 'buttons' },
+      { id: 'grid', type: 'grid' },
+      { id: 'table', type: 'table', activities }
+    ];
+
+    const renderItem = ({ item }: { item: ListItem }) => {
+      switch (item.type) {
+        case 'header':
+          return (
+            <View style={[styles.content, isMobile && styles.contentMobile]}>
+              <Card title="Registros Creados / Total" value="0" />
+              <Card title="Tareas Pendientes" value="0" />
+            </View>
+          );
+        case 'buttons':
+          // Solo mostrar botones si el usuario es asesor o jefe de ventas
+          if (content.role === 'asesor' || content.role === 'jefe de ventas') {
+            return (
+              <View style={[styles.content, isMobile && styles.contentMobile]}>
+                <Button title="Alta de Estudiante" onPress={() => {}} bgColor="#1383eb" textColor="#fff" />
+                <Button title="Cambio de carrera" onPress={() => {}} bgColor="#e7edf3" textColor="#0d151b" />
+              </View>
+            );
+          }
+          return null;
+        case 'grid':
+          return (
+            <View style={[styles.content, isMobile && styles.contentMobile]}>
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ color: '#6B7280', fontSize: 16, textAlign: 'center' }}>
+                  Contenido manejado por componentes específicos por rol
+                </Text>
+              </View>
+            </View>
+          );
+        case 'table':
+          return (
+            <View style={[styles.content, isMobile && styles.contentMobile]}>
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ color: '#6B7280', fontSize: 16, textAlign: 'center' }}>
+                  Tabla de actividades manejada por componentes específicos por rol
+                </Text>
+              </View>
+            </View>
+          );
+        default:
+          return null;
+      }
+    };
+
+    return (
       <FlatList
         data={listData}
         renderItem={renderItem}
@@ -200,6 +200,12 @@ const App = () => {
         contentContainerStyle={isMobile ? { paddingBottom: 120 } : {}}
         style={{ flex: 1 }}
       />
+    );
+  };
+
+  return (
+    <View style={[styles.container, isMobile && styles.containerMobile, { backgroundColor: '#FFFFFF' }]}>
+      {renderRoleBasedContent()}
 
       {/* Panel/BottomSheet para detalle del alumno */}
       {selectedAlumno && (
@@ -232,4 +238,22 @@ const App = () => {
   );
 };
 
-export default App;
+const Explore = () => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  // Shadow RightActions for header options
+  const Right = () => <MobileNativeHeaderActions />;
+
+  return (
+    <>
+      {isMobile && (
+        <Stack.Screen options={{ headerShown: false }} />
+      )}
+      <ScreenAccessControl requiredScreen="explore" fallbackScreen="/(tabs)/notificaciones">
+        <ExploreContent />
+      </ScreenAccessControl>
+    </>
+  );
+};
+
+export default Explore;

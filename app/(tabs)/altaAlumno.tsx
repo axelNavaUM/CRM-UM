@@ -1,9 +1,11 @@
+import { ScreenAccessControl } from '@/components/ui/ScreenAccessControl';
 import { useAuth } from '@/context/AuthContext';
 import { RegistroAlumnoModel } from '@/models/registroAlumnoModel';
 import { subirArchivosBucket } from '@/services/subirArchivoBucket';
 import { supabase } from '@/services/supabase/supaConf';
 import { useRegistroAlumnoStore } from '@/store/registroDeAlumno/datosAlumnoStore';
-import React, { useState } from 'react';
+import { Stack } from 'expo-router';
+import React, { useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Paso1DatosPersonales from '../altaAlumnosView/paso1';
 import Paso2CarreraCiclo from '../altaAlumnosView/paso2';
@@ -17,7 +19,7 @@ const PASOS = [
   'Contrato',
 ];
 
-const AltaAlumno = () => {
+const AltaAlumnoContent = () => {
   // Usar Zustand store para persistencia real
   const pasoActual = useRegistroAlumnoStore(state => state.pasoActual);
   const setPaso = useRegistroAlumnoStore(state => state.setPaso);
@@ -70,6 +72,7 @@ const AltaAlumno = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [success, setSuccess] = useState<string | undefined>(undefined);
+  const isSubmittingRef = useRef(false);
 
   // Navegación entre pasos
   const siguientePaso = () => setPaso(Math.min(pasoActual + 1, PASOS.length));
@@ -77,6 +80,8 @@ const AltaAlumno = () => {
 
   // Finalizar registro usando los datos y archivos del store
   const finalizarRegistro = async () => {
+    if (loading || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     setError(undefined);
     setSuccess(undefined);
@@ -121,10 +126,10 @@ const AltaAlumno = () => {
           fileUri: documentos['curp'].uri || documentos['curp'],
           tipoDocumento: 'curp',
           extension: 'pdf',
-          area: (alumno as any).area || '',
-          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          area: 'alumnos',
+          carrera: (useRegistroAlumnoStore.getState().carreras.find((c:any) => c.id === (alumno as any).carreraId)?.nombre || String((alumno as any).carreraId) || '').toString(),
           ciclo: (alumno as any).cicloAuto || '',
-          grupo: (alumno as any).grupo || '',
+          grupo: (alumno as any).grupo || 'sin_grupo',
           matricula: (alumno as any).matricula || '',
         });
       }
@@ -133,10 +138,10 @@ const AltaAlumno = () => {
           fileUri: documentos['acta'].uri || documentos['acta'],
           tipoDocumento: 'acta',
           extension: 'pdf',
-          area: (alumno as any).area || '',
-          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          area: 'alumnos',
+          carrera: (useRegistroAlumnoStore.getState().carreras.find((c:any) => c.id === (alumno as any).carreraId)?.nombre || String((alumno as any).carreraId) || '').toString(),
           ciclo: (alumno as any).cicloAuto || '',
-          grupo: (alumno as any).grupo || '',
+          grupo: (alumno as any).grupo || 'sin_grupo',
           matricula: (alumno as any).matricula || '',
         });
       }
@@ -145,10 +150,10 @@ const AltaAlumno = () => {
           fileUri: documentos['certificado_prepa'].uri || documentos['certificado_prepa'],
           tipoDocumento: 'certificado_prepa',
           extension: 'pdf',
-          area: (alumno as any).area || '',
-          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          area: 'alumnos',
+          carrera: (useRegistroAlumnoStore.getState().carreras.find((c:any) => c.id === (alumno as any).carreraId)?.nombre || String((alumno as any).carreraId) || '').toString(),
           ciclo: (alumno as any).cicloAuto || '',
-          grupo: (alumno as any).grupo || '',
+          grupo: (alumno as any).grupo || 'sin_grupo',
           matricula: (alumno as any).matricula || '',
         });
       }
@@ -157,10 +162,10 @@ const AltaAlumno = () => {
           fileUri: documentos['formato_pago'].uri || documentos['formato_pago'],
           tipoDocumento: 'formato_pago',
           extension: 'pdf',
-          area: (alumno as any).area || '',
-          carrera: (alumno as any).carreraId ? String((alumno as any).carreraId) : '',
+          area: 'alumnos',
+          carrera: (useRegistroAlumnoStore.getState().carreras.find((c:any) => c.id === (alumno as any).carreraId)?.nombre || String((alumno as any).carreraId) || '').toString(),
           ciclo: (alumno as any).cicloAuto || '',
-          grupo: (alumno as any).grupo || '',
+          grupo: (alumno as any).grupo || 'sin_grupo',
           matricula: (alumno as any).matricula || '',
         });
       }
@@ -168,10 +173,21 @@ const AltaAlumno = () => {
       // 3. Subir archivos
       let resultados: {url: string|null, error: string|null}[] = [];
       if (archivos.length > 0) {
-        resultados = await subirArchivosBucket(archivos);
-        const errores = resultados.filter(r => r.error);
-        if (errores.length > 0) {
-          throw new Error('Error al subir uno o más archivos: ' + errores.map(e => e.error).join(', '));
+        try {
+          console.log('[DEBUG] Iniciando subida de archivos:', archivos.length);
+          resultados = await subirArchivosBucket(archivos);
+          const errores = resultados.filter(r => r.error);
+          if (errores.length > 0) {
+            console.error('[DEBUG] Errores en subida:', errores);
+            throw new Error('Error al subir uno o más archivos: ' + errores.map(e => e.error).join(', '));
+          }
+          console.log('[DEBUG] Todos los archivos subidos correctamente');
+        } catch (uploadError: any) {
+          console.error('[DEBUG] Error en subida de archivos:', uploadError);
+          if (uploadError.message.includes('Network request failed')) {
+            throw new Error('Error de conexión al subir archivos. Verifica tu conexión a internet e intenta de nuevo.');
+          }
+          throw new Error(`Error al subir archivos: ${uploadError.message}`);
         }
       }
 
@@ -194,11 +210,47 @@ const AltaAlumno = () => {
         status: 'pendiente',
       });
 
+      // 6. Verificar si todos los documentos están completos y actualizar status
+      const documentosCompletos = await RegistroAlumnoModel.verificarDocumentosCompletos(alumnoRegistrado.id);
+      
+      if (documentosCompletos) {
+        await RegistroAlumnoModel.actualizarStatusAlumno(alumnoRegistrado.id, 'activo');
+        console.log('✅ Alumno registrado con todos los documentos - Status actualizado a "activo"');
+      } else {
+        console.log('⚠️ Alumno registrado con documentos pendientes - Status permanece "pendiente"');
+      }
+
       setSuccess('¡Registro exitoso! Los documentos han sido subidos y registrados correctamente.');
+
+      // Resetear flujo para nuevo ingreso
+      try {
+        useRegistroAlumnoStore.getState().limpiarRegistro();
+        setPaso(1);
+        // Generar nueva matrícula para el siguiente registro
+        await useRegistroAlumnoStore.getState().generateMatriculaUnica();
+      } catch {}
     } catch (err: any) {
-      setError(err.message || 'Error al registrar alumno');
+      console.error('[DEBUG] Error completo en registro:', err);
+      
+      let errorMessage = 'Error al registrar alumno';
+      
+      if (err.message) {
+        if (err.message.includes('Network request failed')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet e intenta de nuevo.';
+        } else if (err.message.includes('fetch')) {
+          errorMessage = 'Error al procesar archivos. Verifica que los archivos sean válidos.';
+        } else if (err.message.includes('Supabase')) {
+          errorMessage = 'Error en la base de datos. Intenta de nuevo en unos momentos.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      isSubmittingRef.current = false;
     }
-    setLoading(false);
   };
 
   // Render dinámico de pasos usando el store
@@ -325,7 +377,19 @@ FECHA: ${new Date().toLocaleDateString('es-MX')}`;
           {/* Documento dinámico - solo en web */}
           {!isMobile && (
             <View style={styles.documentContainer}>
-              {/* Aquí puedes agregar el componente de documento si lo necesitas */}
+              <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#111827' }}>
+                Vista previa de contrato
+              </Text>
+              <View style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, backgroundColor: '#FAFAFA', padding: 12, maxHeight: 520 }}>
+                <ScrollView showsVerticalScrollIndicator>
+                  <Text style={{ fontFamily: Platform.OS === 'web' ? 'monospace' as any : undefined, whiteSpace: 'pre-wrap' as any, lineHeight: 20, color: '#111827' }}>
+                    {generarContrato()}
+                  </Text>
+                </ScrollView>
+              </View>
+              <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280' }}>
+                Esta vista previa se actualiza en tiempo real conforme llenas el formulario.
+              </Text>
             </View>
           )}
         </View>
@@ -358,10 +422,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   documentContainer: {
-    width: 300,
+    width: 360,
     backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    padding: 16,
+    padding: 12,
+    alignSelf: 'flex-start',
+    maxHeight: 640,
   },
   title: {
     fontSize: 20,
@@ -391,5 +457,21 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 });
+
+const AltaAlumno = () => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
+  return (
+    <>
+      {isMobile && (
+        <Stack.Screen options={{ headerShown: false }} />
+      )}
+      <ScreenAccessControl requiredScreen="altaAlumno" fallbackScreen="/">
+        <AltaAlumnoContent />
+      </ScreenAccessControl>
+    </>
+  );
+};
 
 export default AltaAlumno;

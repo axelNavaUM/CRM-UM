@@ -102,6 +102,31 @@ export class PermisosController {
     return PermisosService.getTablasDisponibles();
   }
 
+  // Nuevos métodos para validar funciones y datos disponibles
+  static getFuncionesDisponibles(): string[] {
+    return PermisosService.getFuncionesDisponibles();
+  }
+
+  static getDatosDisponibles(): string[] {
+    return PermisosService.getDatosDisponibles();
+  }
+
+  static validarFuncionDisponible(funcion: string): boolean {
+    return PermisosService.validarFuncionDisponible(funcion);
+  }
+
+  static validarDatoDisponible(dato: string): boolean {
+    return PermisosService.validarDatoDisponible(dato);
+  }
+
+  static getFuncionesDisponiblesConDescripcion(): Record<string, string> {
+    return PermisosService.getFuncionesDisponiblesConDescripcion();
+  }
+
+  static getDatosDisponiblesConDescripcion(): Record<string, string> {
+    return PermisosService.getDatosDisponiblesConDescripcion();
+  }
+
   static formatTipoPermiso(tipo: string): string {
     return PermisosService.formatTipoPermiso(tipo);
   }

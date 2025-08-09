@@ -1,17 +1,42 @@
 import { Portal } from '@gorhom/portal';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+    Animated,
+    Dimensions,
+    Platform,
+    StyleSheet,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import {
+    GestureHandlerRootView,
+    PanGestureHandler,
+    PanGestureHandlerGestureEvent,
+    State
+} from 'react-native-gesture-handler';
 
 interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   height?: number | string;
+  enableGestures?: boolean;
+  snapPoints?: number[];
 }
 
-const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, children, height = '95%' }) => {
-  const translateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+const { height: screenHeight } = Dimensions.get('window');
+
+const BottomSheet: React.FC<BottomSheetProps> = ({ 
+  open, 
+  onClose, 
+  children, 
+  height = '95%',
+  enableGestures = true,
+  snapPoints = [0, screenHeight * 0.5, screenHeight]
+}) => {
+  const translateY = useRef(new Animated.Value(screenHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const panGestureRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -30,7 +55,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, children, heig
     } else {
       Animated.parallel([
         Animated.timing(translateY, {
-          toValue: Dimensions.get('window').height,
+          toValue: screenHeight,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -43,11 +68,43 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, children, heig
     }
   }, [open]);
 
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationY: translateY } }],
+    { useNativeDriver: true }
+  ) as unknown as (event: PanGestureHandlerGestureEvent) => void;
+
+  const onHandlerStateChange = (event: PanGestureHandlerGestureEvent) => {
+    if (event.nativeEvent.state === State.END) {
+      const { translationY, velocityY } = event.nativeEvent;
+      
+      // Determinar si debe cerrarse basado en la velocidad y distancia
+      const shouldClose = translationY > screenHeight * 0.2 || velocityY > 800;
+      
+      if (shouldClose) {
+        onClose();
+      } else {
+        // Animar de vuelta a la posición original
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        }).start();
+      }
+    }
+  };
+
+  const handleBackdropPress = () => {
+    onClose();
+  };
+
   if (!open) return null;
+
+  const sheetHeight = typeof height === 'number' ? height : height === '100%' ? screenHeight : screenHeight * 0.95;
 
   return (
     <Portal>
-      <View style={styles.overlay}>
+      <GestureHandlerRootView style={styles.overlay}>
         {/* Backdrop */}
         <Animated.View 
           style={[
@@ -58,7 +115,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, children, heig
           <TouchableOpacity 
             style={styles.backdropTouch} 
             activeOpacity={1} 
-            onPress={onClose} 
+            onPress={handleBackdropPress} 
           />
         </Animated.View>
         
@@ -68,21 +125,36 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, children, heig
             styles.bottomSheet,
             { 
               transform: [{ translateY }],
-              height: typeof height === 'number' ? height : height === '100%' ? '100%' : '95%'
+              height: sheetHeight
             }
           ]}
         >
-          {/* Handle */}
-          <View style={styles.handleContainer}>
-            <View style={styles.handle} />
-          </View>
-          
+          {/* Drag Handle (gesture only on handle, not entire content) */}
+          {enableGestures ? (
+            <PanGestureHandler
+              ref={panGestureRef}
+              onGestureEvent={onGestureEvent}
+              onHandlerStateChange={onHandlerStateChange}
+              activeOffsetY={[-10, 10]}
+              failOffsetX={[-20, 20]}
+              shouldCancelWhenOutside={true}
+            >
+              <View style={styles.handleContainer}>
+                <View style={styles.handle} />
+              </View>
+            </PanGestureHandler>
+          ) : (
+            <View style={styles.handleContainer}>
+              <View style={styles.handle} />
+            </View>
+          )}
+
           {/* Content */}
           <View style={styles.content}>
             {children}
           </View>
         </Animated.View>
-      </View>
+      </GestureHandlerRootView>
     </Portal>
   );
 };
@@ -94,7 +166,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 9999,
+    zIndex: 99999,
     justifyContent: 'flex-end',
   },
   backdrop: {
@@ -112,7 +184,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    // Material 3 elevation
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -121,9 +192,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 24,
-    // Usar todo el ancho de la pantalla sin márgenes
     width: Dimensions.get('window').width,
-    // Asegurar que esté anclado al fondo
     alignSelf: 'stretch',
   },
   handleContainer: {
@@ -141,6 +210,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    // permitir scroll de hijos (ScrollView internos) y gestos simultáneos
+    overflow: 'visible',
   },
 });
 

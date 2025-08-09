@@ -150,8 +150,38 @@ export class RegistroAlumnoModel {
       .from('alumnos')
       .select('id')
       .eq('matricula', matricula)
-      .maybeSingle();
-    if (error) throw error;
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+    
     return !!data;
+  }
+
+  /** Actualiza el status del alumno */
+  static async actualizarStatusAlumno(alumno_id: number, status: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('alumnos')
+      .update({ status })
+      .eq('id', alumno_id);
+    
+    if (error) throw error;
+    return true;
+  }
+
+  /** Verifica si un alumno tiene todos los documentos requeridos */
+  static async verificarDocumentosCompletos(alumno_id: number): Promise<boolean> {
+    const documentosRequeridos = ['acta', 'certificado_prepa', 'formato_pago'];
+    
+    const { data: documentosSubidos, error } = await supabase
+      .from('documentos_alumno')
+      .select('tipo_documento')
+      .eq('alumno_id', alumno_id);
+    
+    if (error) throw error;
+    
+    const tiposSubidos = documentosSubidos.map(doc => doc.tipo_documento);
+    return documentosRequeridos.every(doc => tiposSubidos.includes(doc));
   }
 } 

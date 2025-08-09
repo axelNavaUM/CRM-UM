@@ -51,6 +51,12 @@ export default function PermisosManager() {
     clearError,
     getTiposPermiso,
     getTablasDisponibles,
+    getFuncionesDisponibles,
+    getDatosDisponibles,
+    validarFuncionDisponible,
+    validarDatoDisponible,
+    getFuncionesDisponiblesConDescripcion,
+    getDatosDisponiblesConDescripcion,
     formatTipoPermiso,
     generatePoliticaRLSExample,
     updateArea
@@ -175,6 +181,17 @@ export default function PermisosManager() {
         activo: form.activo
       };
 
+      // Validación adicional antes de guardar
+      if (form.tipo === 'funcion' && !validarFuncionDisponible(form.nombre)) {
+        alert(`Error: La función "${form.nombre}" no existe en el sistema. Por favor selecciona una función válida.`);
+        return;
+      }
+
+      if (form.tipo === 'dato' && !validarDatoDisponible(form.nombre)) {
+        alert(`Error: El dato "${form.nombre}" no existe en el sistema. Por favor selecciona un dato válido.`);
+        return;
+      }
+
       if (editingItem.id) {
         result = await updatePermiso(editingItem.id, permisoData);
       } else {
@@ -214,6 +231,8 @@ export default function PermisosManager() {
       } else {
         refreshPoliticasRLS();
       }
+    } else {
+      alert(`Error al guardar: ${result.error}`);
     }
   };
 
@@ -259,6 +278,71 @@ export default function PermisosManager() {
           ))}
         </ScrollView>
       </View>
+
+      {/* Mostrar opciones específicas según el tipo seleccionado */}
+      {form.tipo === 'funcion' && (
+        <View style={styles.pickerContainer}>
+          <Text style={styles.label}>Función disponible:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {getFuncionesDisponibles().map((funcion) => (
+              <TouchableOpacity
+                key={funcion}
+                style={[styles.optionButton, form.nombre === funcion && styles.selectedOption]}
+                onPress={() => handleInputChange('nombre', funcion)}
+              >
+                <Text style={[styles.optionText, form.nombre === funcion && styles.selectedOptionText]}>
+                  {funcion}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={styles.helpText}>
+            Selecciona una función que realmente existe en el sistema
+          </Text>
+        </View>
+      )}
+
+      {form.tipo === 'dato' && (
+        <View style={styles.pickerContainer}>
+          <Text style={styles.label}>Dato disponible:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {getDatosDisponibles().map((dato) => (
+              <TouchableOpacity
+                key={dato}
+                style={[styles.optionButton, form.nombre === dato && styles.selectedOption]}
+                onPress={() => handleInputChange('nombre', dato)}
+              >
+                <Text style={[styles.optionText, form.nombre === dato && styles.selectedOptionText]}>
+                  {dato}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <Text style={styles.helpText}>
+            Selecciona un dato que realmente existe en el sistema
+          </Text>
+        </View>
+      )}
+
+      {/* Mostrar descripción de la función o dato seleccionado */}
+      {form.tipo === 'funcion' && form.nombre && (
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionTitle}>Descripción de la función:</Text>
+          <Text style={styles.descriptionText}>
+            {getFuncionesDisponiblesConDescripcion()[form.nombre] || 'Sin descripción disponible'}
+          </Text>
+        </View>
+      )}
+
+      {form.tipo === 'dato' && form.nombre && (
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionTitle}>Descripción del dato:</Text>
+          <Text style={styles.descriptionText}>
+            {getDatosDisponiblesConDescripcion()[form.nombre] || 'Sin descripción disponible'}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.pickerContainer}>
         <Text style={styles.label}>Área:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -441,13 +525,41 @@ export default function PermisosManager() {
       'update'
     ];
 
+    // Mapeo de permisos a descripciones más claras
+    const permisoDescriptions: Record<string, string> = {
+      'alta_alumnos': 'Alta Alumnos',
+      'busqueda': 'Búsqueda y Actividades',
+      'editar': 'Gestión Peticiones',
+      'leer': 'Notificaciones',
+      'actualizar': 'Actualizar Datos',
+      'alta_usuarios': 'Alta Usuarios',
+      'delete': 'Eliminar',
+      'insert': 'Insertar',
+      'select': 'Consultar',
+      'update': 'Modificar'
+    };
+
+    // Mapeo de permisos a pantallas específicas
+    const permisoScreens: Record<string, string[]> = {
+      'alta_alumnos': ['altaAlumno'],
+      'busqueda': ['explore', 'search'],
+      'editar': ['gestionPeticiones'],
+      'leer': ['notificaciones'],
+      'actualizar': ['explore'],
+      'alta_usuarios': ['altaUsuario'],
+      'delete': [],
+      'insert': [],
+      'select': [],
+      'update': []
+    };
+
     return (
       <View style={styles.table}>
         <View style={styles.tableHeader}>
           <Text style={styles.tableHeaderCell}>Rol/Área</Text>
           {permisosDisponibles.map(permiso => (
             <Text key={permiso} style={[styles.tableHeaderCell, styles.permisoHeader]}>
-              {formatTipoPermiso(permiso)}
+              {permisoDescriptions[permiso] || formatTipoPermiso(permiso)}
             </Text>
           ))}
           <Text style={styles.tableHeaderCell}>Acciones</Text>
@@ -486,6 +598,29 @@ export default function PermisosManager() {
             </View>
           );
         })}
+        
+        {/* Información adicional sobre permisos */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoTitle}>Información sobre Permisos:</Text>
+          <Text style={styles.infoText}>
+            • <Text style={styles.bold}>Alta Alumnos:</Text> Permite registrar nuevos estudiantes
+          </Text>
+          <Text style={styles.infoText}>
+            • <Text style={styles.bold}>Búsqueda y Actividades:</Text> Permite acceder a la pantalla de actividades y búsqueda
+          </Text>
+          <Text style={styles.infoText}>
+            • <Text style={styles.bold}>Gestión Peticiones:</Text> Permite gestionar peticiones de cambio de carrera
+          </Text>
+          <Text style={styles.infoText}>
+            • <Text style={styles.bold}>Notificaciones:</Text> Permite ver notificaciones del sistema
+          </Text>
+          <Text style={styles.infoText}>
+            • <Text style={styles.bold}>Alta Usuarios:</Text> Permite gestionar usuarios y permisos
+          </Text>
+          <Text style={styles.infoText}>
+            • <Text style={styles.bold}>Actualizar Datos:</Text> Permite modificar información existente
+          </Text>
+        </View>
       </View>
     );
   };
@@ -737,6 +872,30 @@ const styles = StyleSheet.create({
   selectedOptionText: {
     color: '#fff',
   },
+  helpText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  descriptionContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  descriptionTitle: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  descriptionText: {
+    fontSize: 12,
+    color: '#555',
+    lineHeight: 16,
+  },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -814,6 +973,26 @@ const styles = StyleSheet.create({
   mobileSaveText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  infoSection: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  infoText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  bold: {
     fontWeight: 'bold',
   },
 }); 

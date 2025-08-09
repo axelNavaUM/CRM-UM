@@ -1,6 +1,8 @@
+import { ScreenAccessControl } from '@/components/ui/ScreenAccessControl';
 import TabNavigation, { TabItem } from '@/components/ui/TabNavigation';
+import { Stack } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import AreasManager from '../altaUsuariosUM/areasManager/AreasManager';
 import PermisosManager from '../altaUsuariosUM/permisosManager/PermisosManager';
 import UsuariosManager from '../altaUsuariosUM/usuariosManager/UsuariosManager';
@@ -23,7 +25,7 @@ const tabs: TabItem[] = [
   }
 ];
 
-export default function AltaUsuario() {
+const AltaUsuarioContent = () => {
   const [activeTab, setActiveTab] = useState('empleados');
 
   const renderActiveComponent = () => {
@@ -50,7 +52,23 @@ export default function AltaUsuario() {
      
     </View>
   );
-}
+};
+
+const AltaUsuario = () => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
+  return (
+    <>
+      {isMobile && (
+        <Stack.Screen options={{ headerShown: false }} />
+      )}
+      <ScreenAccessControl requiredScreen="altaUsuario" fallbackScreen="/">
+        <AltaUsuarioContent />
+      </ScreenAccessControl>
+    </>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -58,3 +76,5 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 });
+
+export default AltaUsuario;

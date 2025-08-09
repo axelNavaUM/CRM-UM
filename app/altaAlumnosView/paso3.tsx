@@ -37,7 +37,10 @@ const handlePickFile = async (setter: (file: File) => void, tipo: string) => {
         alert(`El archivo ${tipo} es demasiado grande. Máximo 10MB permitido.`);
         return;
       }
-      setter(file as any);
+      // Normalizar estructura mínima usada por el uploader
+      const normalized: any = file;
+      if (!normalized.uri && normalized.file) normalized.uri = (normalized as any).file;
+      setter(normalized as any);
     }
   } catch (error) {
     console.error('Error al seleccionar archivo:', error);

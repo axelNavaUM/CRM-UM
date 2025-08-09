@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/Input';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 export interface Paso1DatosPersonalesProps {
   datos: {
@@ -26,33 +26,80 @@ const Paso1DatosPersonales: React.FC<Paso1DatosPersonalesProps> = ({ datos, setD
   }
 
   return (
-    <View>
-      <Input placeholder="Nombre" value={datos.nombre} onChangeText={v => setDatos({ ...datos, nombre: v })} />
-      <Input placeholder="Apellidos" value={datos.apellidos} onChangeText={v => setDatos({ ...datos, apellidos: v })} />
-      <Input placeholder="Email" value={datos.email} onChangeText={v => setDatos({ ...datos, email: v })} keyboardType="email-address" />
-      <Input placeholder="Matrícula" value={datos.matricula} editable={false} />
-      {validationError ? <Text style={{ color: 'red', marginBottom: 8 }}>{validationError}</Text> : null}
-      {!isValidEmail(datos.email) && datos.email.length > 0 ? (
-        <Text style={{ color: 'red', marginBottom: 8 }}>Email no válido</Text>
-      ) : null}
-      <PrimaryButton
-        label="Siguiente"
-        disabled={!datos.nombre || !datos.apellidos || !datos.email || !datos.matricula || !isValidEmail(datos.email)}
-        onPress={() => {
-          if (!datos.nombre || !datos.apellidos || !datos.email || !datos.matricula) {
-            setValidationError('Todos los campos son obligatorios.');
-            return;
-          }
-          if (!isValidEmail(datos.email)) {
-            setValidationError('El email no es válido.');
-            return;
-          }
-          setValidationError('');
-          onSiguiente();
-        }}
-      />
+    <View style={styles.container}>
+      <View style={styles.formContainer}>
+        <Input 
+          placeholder="Nombre" 
+          value={datos.nombre} 
+          onChangeText={v => setDatos({ ...datos, nombre: v })} 
+        />
+        <Input 
+          placeholder="Apellidos" 
+          value={datos.apellidos} 
+          onChangeText={v => setDatos({ ...datos, apellidos: v })} 
+        />
+        <Input 
+          placeholder="Email" 
+          value={datos.email} 
+          onChangeText={v => setDatos({ ...datos, email: v })} 
+          keyboardType="email-address" 
+        />
+        <Input 
+          placeholder="Matrícula" 
+          value={datos.matricula} 
+          editable={false} 
+        />
+        
+        {validationError ? (
+          <Text style={styles.errorText}>{validationError}</Text>
+        ) : null}
+        
+        {!isValidEmail(datos.email) && datos.email.length > 0 ? (
+          <Text style={styles.errorText}>Email no válido</Text>
+        ) : null}
+        
+        <View style={styles.buttonContainer}>
+          <PrimaryButton
+            label="Siguiente"
+            disabled={!datos.nombre || !datos.apellidos || !datos.email || !datos.matricula || !isValidEmail(datos.email)}
+            onPress={() => {
+              if (!datos.nombre || !datos.apellidos || !datos.email || !datos.matricula) {
+                setValidationError('Todos los campos son obligatorios.');
+                return;
+              }
+              if (!isValidEmail(datos.email)) {
+                setValidationError('El email no es válido.');
+                return;
+              }
+              setValidationError('');
+              onSiguiente();
+            }}
+          />
+        </View>
+      </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  formContainer: {
+    maxWidth: 500,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    marginTop: 24,
+  },
+});
 
 export default Paso1DatosPersonales;

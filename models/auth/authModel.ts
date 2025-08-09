@@ -40,6 +40,11 @@ export const authModel = {
       name: fullName,
       email: user.correoinstitucional || user.email || '',
       avatarUrl: user.avatarUrl || '',
+      // Agregar información crucial para roles
+      idarea: user.idarea,
+      nombreusuario: user.nombreusuario,
+      apellido: user.apellido,
+      correoinstitucional: user.correoinstitucional,
     };
 
     return { session: mappedUser };

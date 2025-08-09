@@ -10,6 +10,10 @@ export const useCambioCarrera = (user?: any) => {
     notificacionesNoLeidas,
     isLoading,
     error,
+    historialPeticiones,
+    tramitesPendientes,
+    documentosFaltantes,
+    esControlEscolar,
     fetchPeticionesPorAsesor,
     fetchPeticionesPendientes,
     crearPeticion,
@@ -18,6 +22,13 @@ export const useCambioCarrera = (user?: any) => {
     fetchNotificaciones,
     marcarNotificacionLeida,
     fetchNotificacionesNoLeidas,
+    verificarTramitesPendientes,
+    obtenerHistorialPeticiones,
+    obtenerPeticionesPendientesAlumno,
+    verificarEsControlEscolar,
+    obtenerDocumentosFaltantes,
+    agregarDocumentoFaltante,
+    actualizarStatusAlumno,
     clearError
   } = useCambioCarreraStore();
 
@@ -81,7 +92,9 @@ export const useCambioCarrera = (user?: any) => {
 
       // Verificar por rol (fallback)
       const userInfo = await getUserRole();
-      return userInfo?.rol === 'asesor' || userInfo?.rol === 'jefe de ventas';
+      const normalize = (v?: string) => (v || '').toLowerCase();
+      const rol = normalize(userInfo?.rol);
+      return rol === 'asesor' || rol === 'jefe de ventas' || rol === 'jefe de control' || rol === 'control escolar';
     } catch (error) {
       console.error('Error al verificar permisos:', error);
       return false;
@@ -140,14 +153,9 @@ export const useCambioCarrera = (user?: any) => {
     grupo_nuevo: string;
     motivo: string;
   }) => {
-    console.log('🔍 Hook: Iniciando handleCrearPeticion...');
-    console.log('📋 Hook: Datos de petición:', peticionData);
-    
     const puedeCrear = await puedeCrearPeticiones();
-    console.log('🔐 Hook: ¿Puede crear peticiones?', puedeCrear);
     
     if (!puedeCrear) {
-      console.log('❌ Hook: Usuario no tiene permisos para crear peticiones');
       throw new Error('No tienes permisos para crear peticiones de cambio de carrera');
     }
 
@@ -163,7 +171,6 @@ export const useCambioCarrera = (user?: any) => {
         
         if (usuario) {
           asesor_id = usuario.idusuario;
-          console.log('👤 Hook: Asesor ID obtenido:', asesor_id);
         }
       } catch (error) {
         console.error('Error al obtener asesor_id:', error);
@@ -171,17 +178,12 @@ export const useCambioCarrera = (user?: any) => {
       }
     }
     
-    console.log('✅ Hook: Usuario tiene permisos, procediendo a crear petición...');
     const result = await crearPeticion({
       ...peticionData,
       asesor_id: asesor_id
     });
 
-    console.log('📊 Hook: Resultado de crearPeticion:', result);
-
     if (result.success) {
-      // Recargar datos
-      console.log('🔄 Hook: Recargando datos...');
       await loadDataByRole();
     }
 
@@ -248,6 +250,10 @@ export const useCambioCarrera = (user?: any) => {
     notificacionesNoLeidas,
     isLoading,
     error,
+    historialPeticiones,
+    tramitesPendientes,
+    documentosFaltantes,
+    esControlEscolar,
     
     // Funciones
     getUserRole,
@@ -256,6 +262,13 @@ export const useCambioCarrera = (user?: any) => {
     handleAprobarPeticion,
     handleRechazarPeticion,
     handleMarcarNotificacionLeida,
+    verificarTramitesPendientes,
+    obtenerHistorialPeticiones,
+    obtenerPeticionesPendientesAlumno,
+    verificarEsControlEscolar,
+    obtenerDocumentosFaltantes,
+    agregarDocumentoFaltante,
+    actualizarStatusAlumno,
     clearError,
     
     // Verificación de permisos
