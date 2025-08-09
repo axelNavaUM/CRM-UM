@@ -46,7 +46,8 @@
       "router": {},
       "eas": {
         "projectId": "0edce214-27a5-4779-b1de-f94a9129f1e6"
-      }
+      },
+      "expo-output-dir": "dist"
     }
   }
 }
